@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+dist-electron/
+out/
+release/
+coverage/
+
+# caches and tooling
+.vite/
+.cache/
+.eslintcache
+.parcel-cache/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment files
+.env
+.env.*
+!.env.example
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# local workspace and temporary folders
+.kilo/
+tmp/
+temp/
+
+# app/runtime artifacts
+*.sqlite
+*.sqlite3
+*.db

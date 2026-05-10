@@ -1,0 +1,44 @@
+{
+  "name": "music-reon",
+  "version": "1.0.0",
+  "description": "A Spotify-like Windows desktop music streaming app using YouTube InnerTube API",
+  "main": "out/main/index.js",
+  "author": "Music Reon Team",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "postinstall": "electron-builder install-app-deps",
+    "build:win": "npm run build && electron-builder --win",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "electron-log": "^5.1.0",
+    "electron-updater": "^6.1.0",
+    "howler": "^2.2.4",
+    "lowdb": "^7.0.0",
+    "pinia": "^2.1.0",
+    "steno": "^4.0.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.0",
+    "vuedraggable": "^4.1.0",
+    "youtubei.js": "^17.0.1"
+  },
+  "devDependencies": {
+    "@types/howler": "^2.2.11",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "autoprefixer": "^10.4.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-vite": "^2.0.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preload Test</title>
+</head>
+<body>
+    <h1>Testing Electron Preload</h1>
+    <div id="result"></div>
+    <script>
+        const result = document.getElementById('result');
+        
+        console.log('=== Preload Test ===');
+        console.log('window.electron:', window.electron);
+        
+        if (window.electron) {
+            result.innerHTML = '<p style="color: green;">✅ window.electron is available!</p>';
+            result.innerHTML += '<pre>' + JSON.stringify(Object.keys(window.electron), null, 2) + '</pre>';
+        } else {
+            result.innerHTML = '<p style="color: red;">❌ window.electron is NOT available!</p>';
+            result.innerHTML += '<p>This means the preload script did not run.</p>';
+        }
+    </script>
+</body>
+</html>

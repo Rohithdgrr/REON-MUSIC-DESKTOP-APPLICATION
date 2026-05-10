@@ -1,0 +1,21 @@
+{
+  appId: 'com.musicreon.app',
+  productName: 'Music Reon',
+  directories: {
+    output: 'release'
+  },
+  files: [
+    'out',
+    'dist-electron',
+    'package.json'
+  ],
+  win: {
+    target: [
+      {
+        target: 'portable',
+        arch: ['x64']
+      }
+    ],
+    verifyUpdateCodeSignature: false
+  }
+}
