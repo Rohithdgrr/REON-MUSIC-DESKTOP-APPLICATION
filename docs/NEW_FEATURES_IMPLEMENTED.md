@@ -286,3 +286,106 @@ The app is ready for testing and deployment! 🚀
 4. Implement remaining Phase 4-5 features
 5. Polish and optimize
 
+---
+
+# Session 2: Quality-of-Life & Polish (May 2026)
+
+## ✅ Features Implemented
+
+### 1. **Playlist Info Panel** — `src/views/PlaylistView.vue`, `electron/main/ipc/sqlite.js`
+- Info button in playlist header opens slide-out panel
+- Editable playlist name and description (saves via IPC)
+- Stats: song count, total duration, average length, top artist, created date
+- Artist breakdown with song counts per artist
+
+### 2. **Playlist Track Reordering (Drag & Drop)** — `src/views/PlaylistView.vue`, `electron/main/ipc/sqlite.js`
+- Uses vuedraggable with drag handle on each track row
+- Reorder persists to database (splice + re-index)
+- Ghost class for visual feedback during drag
+
+### 3. **Playback Speed Control** — `src/views/SettingsView.vue`, `src/utils/audioManager.js`, `src/components/PlayerBar.vue`
+- Settings: range slider 0.5x–2x (step 0.05), real-time adjustment
+- PlayerBar quick-access: clock icon button with popup (0.5x / 0.75x / 1x / 1.25x / 1.5x / 2x)
+- Both sync via localStorage
+
+### 4. **Dynamic Mood Playlists** — `src/stores/smartPlaylists.js`, `src/views/HomeView.vue`
+- 10 mood categories: Workout, Focus, Chill, Party, Romantic, Road Trip, Sad, Morning, Night, Devotional
+- Fetches from YouTube Music API per mood keyword
+- Filters through content filter for music-only results
+- Caches results per mood
+- Click a mood to show results in slide-down panel with TrackCard items
+
+### 5. **Content Filtering Fix** — `electron/main/services/InnertubeService.js`, `src/utils/contentFilter.js`
+- **P0**: `isMusicContent()` in `InnertubeService.js` — duration check (≤30min), exclude keywords (podcast, interview, etc.), long-music allowlist (DJ mix, classical, etc.)
+- **P2**: `filterMusicContent()` safety net in `CategoryView.vue`
+- Dual-layer defense-in-depth
+
+### 6. **Smart Playlists Tab** — `src/views/LibraryView.vue`
+- New "Smart" tab in Library with auto-generated playlists:
+  - Recently Added (last 7 days)
+  - Most Played (top 50)
+  - Favorites Mix
+  - Long Songs (>5 min)
+  - Short Songs (<3 min)
+
+### 7. **Toast Notification System** — `src/components/NotificationContainer.vue`, `src/composables/useNotifications.js`
+- Replaced all 7 `alert()` calls in `SettingsView.vue`
+- Replaced `alert()` in `PlayerBar.vue:shareTrack`
+- Non-intrusive success/error/info toast messages
+
+### 8. **Sleep Timer** — `src/components/PlayerBar.vue`, `src/components/SleepTimer.vue`
+- Moon icon button in PlayerBar
+- Popup picker: 15/30/60/90 minutes
+- Remaining-time badge countdown
+- 30-second fade-out before stop
+
+### 9. **Listening Stats Dashboard** — `src/stores/stats.js`, `src/views/LibraryView.vue`
+- 6 stat cards: total songs, artists, plays, listening time, favorites, playlists
+- Top songs list (ordered by play count)
+- Top artists list (ordered by play count)
+
+### 10. **SearchView Polish** — `src/views/SearchView.vue`
+- Auto-search from route param `?q=`
+- Artist chips: extracted from results, clickable to re-search
+- Play All button (queue all results)
+- Search history (localStorage, max 10, clickable with "Clear")
+- Trending suggestions as defaults
+- Load-more (20 + 20 more)
+- Better loading/empty/error states
+
+### 11. **FavoritesView Rewrite** — `src/views/FavoritesView.vue`, `src/stores/favorites.js`
+- Map-based O(1) lookup instead of array iteration
+- Glassmorphism header
+- Reactive search filter across title/artist
+- Multi-criteria sorting (name, artist, date added, duration)
+- Shimmer loading placeholders
+
+### 12. **Light Theme Refresh** — `src/assets/styles/variables.css`
+- Indigo primary color (#6366f1)
+- Refined glassmorphism variables
+- Polished scrollbars
+
+### 13. **Enhanced Keyboard Shortcuts** — `src/composables/useMediaKeys.js`
+- All shortcuts now match KeyboardShortcutsView:
+  - `Ctrl+arrows`: track skip, volume
+  - `S`: shuffle, `R`: repeat
+  - `Q`: queue toggle, `/`: focus search
+  - `Ctrl+H/F/L/D`: navigate views
+  - `Ctrl+,`: settings, `Ctrl+/`: shortcuts
+  - Media keys: PlayPause, Next, Previous, Stop
+
+### 14. **Save Queue as Playlist** — `src/components/QueuePanel.vue`
+- "Save as Playlist" button in QueuePanel footer
+- Inline input field (no more browser prompt())
+- Toast notification on success
+- Creates playlist + adds all queued songs via IPC
+
+### 15. **Stats/History Views Removed** (refactor)
+- `StatsView.vue` and `RecentlyPlayedView.vue` deleted
+- Stats and History tabs moved to LibraryView
+
+## Build Status
+- ✅ Build passes cleanly (main: ~31 kB, renderer: ~1077 kB)
+- ✅ All features compile without errors or warnings
+
+

@@ -1,56 +1,170 @@
 <template>
   <div class="favorites-view">
+    <!-- Glassmorphism Header -->
     <div class="view-header">
+      <div class="header-backdrop" :style="{ backgroundImage: headerBackdropUrl ? `url(${headerBackdropUrl})` : 'none' }"></div>
       <div class="header-content">
-        <div class="header-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
+        <button class="back-btn" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div class="header-cover-wrap">
+          <div class="header-icon-glass">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
         </div>
         <div class="header-info">
-          <h1>Favorites</h1>
-          <p class="subtitle">{{ favoriteCount }} songs you love</p>
+          <span class="view-type-tag">Playlist</span>
+          <h1 class="page-title">Favorites</h1>
+          <p class="subtitle">
+            <span class="highlight">{{ favoriteCount }}</span> {{ favoriteCount === 1 ? 'song' : 'songs' }} saved
+          </p>
         </div>
       </div>
-      <div class="header-actions">
-        <button v-if="favoriteCount > 0" @click="playAll" class="play-all-btn">
+      
+      <div class="header-actions" v-if="favoriteCount > 0">
+        <button @click="playAll" class="play-all-btn">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
           </svg>
           Play All
         </button>
-        <button v-if="favoriteCount > 0" @click="shuffleAll" class="shuffle-btn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+        <button @click="shuffleAll" class="shuffle-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"/>
+            <line x1="4" y1="20" x2="21" y2="3"/>
+            <polyline points="21 16 21 21 16 21"/>
+            <line x1="15" y1="15" x2="21" y2="21"/>
+            <line x1="4" y1="4" x2="9" y2="9"/>
           </svg>
           Shuffle
         </button>
       </div>
     </div>
 
-    <div v-if="isLoading" class="loading">
-      <div class="spinner"></div>
-      <p>Loading favorites...</p>
+    <!-- Filter & Search Strip -->
+    <div class="filter-strip" v-if="favoriteCount > 0">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search in favorites..."
+          class="search-input"
+        />
+        <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sort-controls">
+        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="16" y2="6"/>
+          <line x1="4" y1="12" x2="12" y2="12"/>
+          <line x1="4" y1="18" x2="8" y2="18"/>
+          <polyline points="15 15 18 18 21 15"/>
+        </svg>
+        <div class="sort-select-wrapper">
+          <select v-model="sortBy" class="sort-select">
+            <option value="addedAt">Date Added</option>
+            <option value="title">Title</option>
+            <option value="artist">Artist</option>
+            <option value="duration">Duration</option>
+          </select>
+          <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        
+        <button @click="toggleSortOrder" class="direction-btn" :title="sortOrder === 'desc' ? 'Descending' : 'Ascending'">
+          <svg v-if="sortOrder === 'desc'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <polyline points="19 12 12 19 5 12"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
+    <!-- Loading Skeleton -->
+    <div v-if="isLoading" class="loading-state">
+      <div class="skeleton-list">
+        <div v-for="n in 5" :key="n" class="skeleton-row">
+          <div class="skeleton-thumb"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-artist"></div>
+          </div>
+          <div class="skeleton-dur"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
     <div v-else-if="favoriteCount === 0" class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>
+      <div class="empty-glow"></div>
+      <div class="empty-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
       <h2>No favorites yet</h2>
-      <p>Songs you favorite will appear here</p>
+      <p>Click the heart icon on any song to build your personal collection.</p>
       <button @click="goToSearch" class="browse-btn">
-        Browse Music
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Discover Music
       </button>
     </div>
 
-    <div v-else class="favorites-list">
-      <TrackCard
-        v-for="song in favoriteSongs"
-        :key="song.videoId"
-        :track="song"
-        @play="playSong"
-      />
+    <!-- Empty Search State -->
+    <div v-else-if="filteredSongs.length === 0" class="empty-search-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <h3>No matches found</h3>
+      <p>No songs match "{{ searchQuery }}" in your favorites.</p>
+    </div>
+
+    <!-- Favorites List -->
+    <div v-else class="favorites-list-container">
+      <div class="list-headers">
+        <span class="header-col-rank">#</span>
+        <span class="header-col-title">Title</span>
+        <span class="header-col-actions"></span>
+        <span class="header-col-dur">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+      </div>
+      <div class="favorites-list">
+        <TrackCard
+          v-for="(song, index) in filteredSongs"
+          :key="song.videoId"
+          :track="song"
+          @play="playSong"
+          class="favorite-track-card"
+        >
+          <template #rank>
+            <span class="track-row-index">{{ index + 1 }}</span>
+          </template>
+        </TrackCard>
+      </div>
     </div>
   </div>
 </template>
@@ -67,33 +181,79 @@ const favoritesStore = useFavoritesStore()
 const player = usePlayerStore()
 
 const isLoading = ref(true)
+const searchQuery = ref('')
+const sortBy = ref('addedAt')
+const sortOrder = ref('desc')
 
 const favoriteSongs = computed(() => favoritesStore.favoriteSongs)
 const favoriteCount = computed(() => favoritesStore.favoriteCount)
+
+const headerBackdropUrl = computed(() => {
+  if (favoriteSongs.value.length > 0) {
+    return favoriteSongs.value[0].thumbnail
+  }
+  return ''
+})
+
+const filteredSongs = computed(() => {
+  let songs = [...favoriteSongs.value]
+
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    songs = songs.filter(song => 
+      song.title.toLowerCase().includes(query) || 
+      song.artist.toLowerCase().includes(query)
+    )
+  }
+
+  songs.sort((a, b) => {
+    let comparison = 0
+    if (sortBy.value === 'addedAt') {
+      comparison = new Date(a.addedAt || 0) - new Date(b.addedAt || 0)
+    } else if (sortBy.value === 'title') {
+      comparison = a.title.localeCompare(b.title)
+    } else if (sortBy.value === 'artist') {
+      comparison = a.artist.localeCompare(b.artist)
+    } else if (sortBy.value === 'duration') {
+      comparison = (a.duration || 0) - (b.duration || 0)
+    }
+    return sortOrder.value === 'desc' ? -comparison : comparison
+  })
+
+  return songs
+})
 
 onMounted(async () => {
   await favoritesStore.loadFavorites()
   isLoading.value = false
 })
 
+function toggleSortOrder() {
+  sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
+}
+
 function playSong(song) {
-  player.setQueue(favoriteSongs.value, favoriteSongs.value.indexOf(song))
+  player.setQueue(filteredSongs.value, filteredSongs.value.indexOf(song))
   player.playTrack(song)
 }
 
 function playAll() {
-  if (favoriteSongs.value.length > 0) {
-    player.setQueue(favoriteSongs.value, 0)
-    player.playTrack(favoriteSongs.value[0])
+  if (filteredSongs.value.length > 0) {
+    player.setQueue(filteredSongs.value, 0)
+    player.playTrack(filteredSongs.value[0])
   }
 }
 
 function shuffleAll() {
-  if (favoriteSongs.value.length > 0) {
-    const shuffled = [...favoriteSongs.value].sort(() => Math.random() - 0.5)
+  if (filteredSongs.value.length > 0) {
+    const shuffled = [...filteredSongs.value].sort(() => Math.random() - 0.5)
     player.setQueue(shuffled, 0)
     player.playTrack(shuffled[0])
   }
+}
+
+function goBack() {
+  router.back()
 }
 
 function goToSearch() {
@@ -105,91 +265,185 @@ function goToSearch() {
 .favorites-view {
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 60px;
 }
 
+/* Glassmorphism Header */
 .view-header {
+  position: relative;
+  border-radius: var(--radius-xl);
+  padding: 40px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: var(--space-xl);
-  padding-bottom: var(--space-lg);
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 28px;
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-lg);
+}
+
+.header-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(80px) brightness(0.5) saturate(1.3);
+  transform: scale(1.3);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
 }
 
 .header-content {
   display: flex;
   align-items: center;
-  gap: var(--space-lg);
+  gap: 28px;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
-.header-icon {
-  width: 80px;
-  height: 80px;
+.header-cover-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.header-icon-glass {
+  width: 120px;
+  height: 120px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-glow);
+  position: relative;
+  animation: float 6s ease-in-out infinite;
 }
 
-.header-icon svg {
-  width: 40px;
-  height: 40px;
+.header-icon-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+}
+
+.header-icon-glass::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: calc(var(--radius-lg) + 4px);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  z-index: -1;
+  opacity: 0.4;
+  filter: blur(12px);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.header-icon-glass svg {
+  width: 48px;
+  height: 48px;
   color: white;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
 }
 
-.header-info h1 {
-  margin: 0 0 var(--space-xs) 0;
-  font-size: 2.5rem;
+.header-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.view-type-tag {
+  font-size: 0.7rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-primary);
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+.page-title {
+  margin: 0 0 6px 0;
+  font-size: 3rem;
+  font-weight: 800;
   color: var(--color-text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+[data-theme="light"] .page-title {
+  background: linear-gradient(135deg, var(--color-text) 0%, var(--color-text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 1rem;
-  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.subtitle .highlight {
+  color: var(--color-primary);
+  font-weight: 700;
+  font-family: var(--font-mono);
 }
 
 .header-actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .play-all-btn,
 .shuffle-btn {
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-full);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
   border: none;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  transition: all var(--transition-fast);
+  gap: 8px;
+  transition: all var(--transition-normal);
+  letter-spacing: 0.01em;
 }
 
 .play-all-btn {
   background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-glow);
 }
 
 .play-all-btn:hover {
   background: var(--color-primary-dark);
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-intense);
 }
 
 .shuffle-btn {
-  background: var(--color-surface);
+  background: var(--glass-bg-light);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: var(--glass-border);
+  backdrop-filter: blur(12px);
 }
 
 .shuffle-btn:hover {
   background: var(--color-surface-hover);
   border-color: var(--color-primary);
+  transform: translateY(-2px);
 }
 
 .play-all-btn svg,
@@ -198,114 +452,480 @@ function goToSearch() {
   height: 16px;
 }
 
-.loading {
+/* Filter & Search Strip */
+.filter-strip {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--space-xl);
-  gap: var(--space-md);
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.spinner {
+.search-box {
+  flex: 1;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  gap: 10px;
+  height: 40px;
+  transition: all var(--transition-fast);
+}
+
+.search-box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+  max-width: 360px;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0;
+  width: 100%;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+}
+
+.clear-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.clear-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+}
+
+.sort-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sort-select {
+  appearance: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 8px 32px 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  min-width: 130px;
+}
+
+.sort-select:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.sort-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.select-chevron {
+  position: absolute;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.direction-btn {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.empty-state {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl) * 2;
-  text-align: center;
-}
-
-.empty-state svg {
-  width: 80px;
-  height: 80px;
-  color: var(--color-text-muted);
-  opacity: 0.3;
-  margin-bottom: var(--space-lg);
-}
-
-.empty-state h2 {
-  margin: 0 0 var(--space-sm) 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.empty-state p {
-  margin: 0 0 var(--space-lg) 0;
-  font-size: 1rem;
-  color: var(--color-text-muted);
-}
-
-.browse-btn {
-  padding: var(--space-sm) var(--space-xl);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary);
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
+.direction-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.direction-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Loading Skeleton */
+.loading-state {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 12px;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+[data-theme="light"] .skeleton-row::after {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.03), transparent);
+}
+
+.skeleton-thumb {
+  width: 72px;
+  height: 72px;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.skeleton-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-title {
+  width: 40%;
+  height: 14px;
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+}
+
+.skeleton-artist {
+  width: 25%;
+  height: 10px;
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+}
+
+.skeleton-dur {
+  width: 40px;
+  height: 10px;
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Empty State */
+.empty-state {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.empty-glow {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.empty-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.empty-icon-wrap svg {
+  width: 36px;
+  height: 36px;
+  color: var(--color-primary);
+}
+
+.empty-state h2 {
+  margin: 0 0 10px 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.empty-state p {
+  margin: 0 0 28px 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.browse-btn {
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-glow);
+}
+
 .browse-btn:hover {
   background: var(--color-primary-dark);
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow-intense);
+}
+
+.browse-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Empty Search State */
+.empty-search-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.empty-search-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.35;
+}
+
+.empty-search-state h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.empty-search-state p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Favorites List */
+.favorites-list-container {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.list-headers {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+
+.list-headers span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.header-col-rank {
+  width: 24px;
+  text-align: center;
+}
+
+.header-col-title {
+  flex: 1;
+}
+
+.header-col-actions {
+  width: 140px;
+}
+
+.header-col-dur {
+  width: 40px;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header-col-dur svg {
+  width: 14px;
+  height: 14px;
 }
 
 .favorites-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 6px;
 }
 
+.favorite-track-card {
+  margin: 0;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .view-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-md);
+    gap: 20px;
+    padding: 24px;
   }
 
   .header-content {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
   }
 
-  .header-icon {
-    width: 60px;
-    height: 60px;
+  .header-icon-glass {
+    width: 90px;
+    height: 90px;
   }
 
-  .header-icon svg {
-    width: 30px;
-    height: 30px;
+  .header-icon-glass svg {
+    width: 36px;
+    height: 36px;
   }
 
-  .header-info h1 {
-    font-size: 2rem;
+  .page-title {
+    font-size: 2.25rem;
   }
 
   .header-actions {
     width: 100%;
+    gap: 8px;
   }
 
   .play-all-btn,
   .shuffle-btn {
     flex: 1;
+    padding: 10px 16px;
+    justify-content: center;
+    font-size: 0.8rem;
+  }
+
+  .filter-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-box {
+    max-width: none !important;
+  }
+
+  .sort-controls {
+    justify-content: space-between;
+  }
+
+  .list-headers {
+    display: none;
   }
 }
 </style>

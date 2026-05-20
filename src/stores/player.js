@@ -19,9 +19,25 @@ export const usePlayerStore = defineStore('player', () => {
 
   const audioManager = new AudioManager()
   let progressTimer = null
-  let urlCache = new Map() // Cache URLs with expiry
+  let urlCache = new Map()
   let retryCount = 0
   const MAX_RETRIES = 3
+
+  // Apply saved settings to audio manager
+  function applyAudioSettings() {
+    try {
+      const saved = localStorage.getItem('musicReonSettings')
+      if (saved) {
+        const settings = JSON.parse(saved)
+        audioManager.setCrossfade(settings.crossfadeDuration > 0, (settings.crossfadeDuration || 3) * 1000)
+        audioManager.setGapless(settings.gaplessPlayback || false)
+        audioManager.setRate(settings.playbackSpeed || 1.0)
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  applyAudioSettings()
 
   // Getters
   const hasNext = computed(() => {
@@ -364,8 +380,14 @@ export const usePlayerStore = defineStore('player', () => {
   // Cleanup on unmount
   function cleanup() {
     audioManager.unload()
-    stopProgressTimer()
-    urlCache.clear()
+  }
+
+  function applyPlaybackSpeed(speed) {
+    audioManager.setRate(speed)
+  }
+
+  function applyCrossfade(enabled, duration) {
+    audioManager.setCrossfade(enabled, duration)
   }
 
   return {
@@ -395,6 +417,8 @@ export const usePlayerStore = defineStore('player', () => {
     toggleShuffle,
     cycleRepeatMode,
     formatTime,
-    cleanup
+    cleanup,
+    applyPlaybackSpeed,
+    applyCrossfade
   }
 })

@@ -1,8 +1,15 @@
 <template>
   <div class="shortcuts-view">
     <div class="view-header">
-      <h1>Keyboard Shortcuts</h1>
-      <p class="subtitle">Master Music Reon with these shortcuts</p>
+      <div class="header-top-row">
+        <button class="back-btn" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div>
+          <h1>Keyboard Shortcuts</h1>
+          <p class="subtitle">Master Music Reon with these shortcuts</p>
+        </div>
+      </div>
     </div>
 
     <div class="shortcuts-grid">
@@ -160,6 +167,14 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+function goBack() {
+  router.back()
+}
+
 function printShortcuts() {
   window.print()
 }

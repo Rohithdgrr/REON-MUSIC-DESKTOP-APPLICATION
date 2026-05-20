@@ -149,6 +149,16 @@ export class AudioManager {
     this.gaplessEnabled = enabled
   }
 
+  setRate(rate) {
+    if (this.howl) {
+      this.howl.rate(rate)
+    }
+  }
+
+  getRate() {
+    return this.howl ? this.howl.rate() : 1
+  }
+
   // Preload next track for gapless playback
   async preloadNext(streamUrl) {
     if (!this.gaplessEnabled) return
@@ -283,6 +293,35 @@ export class AudioManager {
     } catch (err) {
       this.isCrossfading = false
       throw err
+    }
+  }
+
+  /**
+   * Set up AnalyserNode for audio visualization
+   * @returns {AnalyserNode|null}
+   */
+  setupAnalyser() {
+    try {
+      if (typeof Howler === 'undefined' || !Howler.ctx) return null
+      if (this._analyser) return this._analyser
+      
+      this._analyser = Howler.ctx.createAnalyser()
+      this._analyser.fftSize = 256
+      Howler.masterGain.connect(this._analyser)
+      return this._analyser
+    } catch {
+      return null
+    }
+  }
+
+  getAnalyser() {
+    return this._analyser || null
+  }
+
+  removeAnalyser() {
+    if (this._analyser) {
+      try { this._analyser.disconnect() } catch {}
+      this._analyser = null
     }
   }
 }

@@ -6,6 +6,7 @@ import log from 'electron-log'
 import { initDatabase, closeDatabase } from './db/connection.js'
 import { registerInnertubeIPC } from './ipc/innertube.js'
 import { registerSqliteIPC } from './ipc/sqlite.js'
+import { registerDownloadsIPC } from './ipc/downloads.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -166,6 +167,7 @@ app.whenReady().then(async () => {
     await initDatabase()
     registerInnertubeIPC()
     registerSqliteIPC()
+    registerDownloadsIPC()
     createWindow()
     createTray()
     log.info('App initialized successfully')

@@ -7,11 +7,21 @@ A Spotify-like Windows desktop music streaming app built with Electron, Vue 3, a
 - **Search & Stream** — Search YouTube Music and stream audio directly
 - **Ad-Free Playback** — Direct audio streams with no YouTube ads
 - **Local Library** — Automatically saves played songs to your local library
-- **Playlists** — Create and manage custom playlists
-- **Playback History** — Track recently played songs
-- **Queue Management** — Play next, shuffle, repeat modes
-- **Light Theme** — Clean, modern light UI (with dark mode support)
-- **Keyboard Shortcuts** — Space to play/pause, arrows to seek/volume
+- **Playlists** — Create and manage custom playlists (with drag-and-drop reorder)
+- **Playback History** — Track recently played songs with stats
+- **Queue Management** — Play next, shuffle, repeat modes, save queue as playlist
+- **Dynamic Mood Playlists** — 10 moods (Workout, Focus, Chill, Party, etc.) auto-generated from YouTube Music
+- **Smart Playlists** — Recently Added, Most Played, Favorites Mix, Long Songs, Short Songs
+- **Listening Stats** — Total songs, artists, plays, listening time, top songs, top artists
+- **10-Band Equalizer** — 8 presets with custom gain per band
+- **Crossfade & Gapless** — Smooth transitions between songs
+- **Playback Speed** — 0.5x–2x via settings slider or PlayerBar quick-access
+- **Sleep Timer** — 15/30/60/90 minute auto-stop with fade-out
+- **Content Filtering** — Dual-layer music-only filtering (podcasts/interviews filtered out)
+- **Toast Notifications** — Non-intrusive feedback for actions
+- **Playlist Info Panel** — Editable name/description, stats, artist breakdown
+- **Keyboard Shortcuts** — Comprehensive shortcuts (see below)
+- **Light/Dark Theme** — Clean glassmorphism UI with backdrop blur
 - **Windows Portable** — Single `.exe` file, no installation required
 
 ## Tech Stack
@@ -110,28 +120,48 @@ music-reon/
 │   │   │   ├── innertube.js      # YouTube InnerTube IPC APIs
 │   │   │   └── sqlite.js         # lowdb JSON store IPC APIs
 │   │   ├── services/
-│   │   │   └── InnertubeService.js  # Search, stream URL extraction
+│   │   │   └── InnertubeService.js  # Search, stream URL, content filter
 │   │   └── db/
 │   │       └── connection.js     # lowdb JSON file init
 │   └── preload/
 │       └── index.js              # contextBridge strict API expose
 ├── src/
 │   ├── main.js                   # Vue 3 app bootstrap
-│   ├── App.vue                   # Root layout
-│   ├── assets/styles/            # CSS variables, Tailwind
+│   ├── App.vue                   # Root layout (sidebar + player + queue)
+│   ├── assets/styles/            # CSS variables (themes), glassmorphism
 │   ├── components/
-│   │   ├── PlayerBar.vue         # Bottom fixed player controls
-│   │   ├── Sidebar.vue           # Navigation + playlists
-│   │   └── TrackCard.vue         # Song thumbnail + info
+│   │   ├── PlayerBar.vue         # Bottom player controls (speed, sleep, share)
+│   │   ├── Sidebar.vue           # Navigation + playlist list
+│   │   ├── TrackCard.vue         # Song thumbnail + info card
+│   │   ├── QueuePanel.vue        # Queue sidebar with drag-reorder
+│   │   ├── NotificationContainer.vue  # Toast notifications
+│   │   ├── EqualizerPanel.vue    # 10-band EQ
+│   │   ├── SleepTimer.vue        # Sleep timer popup
+│   │   └── FavoriteButton.vue    # Heart toggle with animation
 │   ├── stores/
 │   │   ├── player.js             # Audio player state (Pinia)
 │   │   ├── search.js             # Search state
-│   │   └── library.js            # Library/playlists state
+│   │   ├── library.js            # Library/playlists state
+│   │   ├── favorites.js          # Favorites (Map-based O(1) lookup)
+│   │   └── smartPlaylists.js     # Mood playlists + smart generators
+│   ├── composables/
+│   │   ├── useMediaKeys.js       # Global keyboard shortcuts
+│   │   ├── useNotifications.js   # Toast notification system
+│   │   └── useTheme.js           # Theme switching
+│   ├── utils/
+│   │   ├── audioManager.js       # Howler.js wrapper (crossfade, speed)
+│   │   ├── electronApi.js        # Browser mock for electron APIs
+│   │   ├── contentFilter.js      # Renderer-side music content filter
+│   │   └── trackNormalizer.js    # Track data normalization
 │   ├── views/
-│   │   ├── HomeView.vue
-│   │   ├── SearchView.vue
-│   │   ├── LibraryView.vue
-│   │   └── PlaylistView.vue
+│   │   ├── HomeView.vue          # Mood cards + dynamic results
+│   │   ├── SearchView.vue        # Search with history, trending, artist chips
+│   │   ├── LibraryView.vue       # Tabs: songs, playlists, smart, stats, history
+│   │   ├── PlaylistView.vue      # Playlist tracks + info panel + drag reorder
+│   │   ├── FavoritesView.vue     # Full favorites page with search/sort
+│   │   ├── CategoryView.vue      # Category/mood playlist browser
+│   │   ├── SettingsView.vue      # Settings (speed, crossfade, notifications)
+│   │   └── KeyboardShortcutsView.vue  # Shortcuts reference
 │   └── router/
 │       └── index.js
 ├── package.json
@@ -152,19 +182,32 @@ music-reon/
 | Key | Action |
 |-----|--------|
 | Space | Play / Pause |
-| Left Arrow | Seek backward 5s |
-| Right Arrow | Seek forward 5s |
-| Up Arrow | Volume up |
-| Down Arrow | Volume down |
+| `Ctrl + →` | Next Track |
+| `Ctrl + ←` | Previous Track |
+| `→ / ←` | Seek forward / backward 5s |
+| `Ctrl + ↑ / ↓` | Volume up / down |
+| `M` | Mute / Unmute |
+| `S` | Toggle Shuffle |
+| `R` | Cycle Repeat mode |
+| `Q` | Toggle Queue panel |
+| `/` | Focus Search |
+| `Escape` | Close panels / Blur input |
+| `Ctrl + H` | Go to Home |
+| `Ctrl + F` | Go to Search |
+| `Ctrl + L` | Go to Library |
+| `Ctrl + D` | Go to Favorites |
+| `Ctrl + ,` | Go to Settings |
+| `Ctrl + /` | Keyboard Shortcuts |
+| Media Keys | Play/Pause, Next, Previous, Stop |
 
 ## Future Roadmap
 
 1. **Offline Downloads** — yt-dlp + ffmpeg transcode to MP3
 2. **Synced Lyrics** — LRCLIB API integration
-3. **Equalizer** — Web Audio API BiquadFilter
+3. **Audio Visualization** — Canvas-based spectrum analyzer
 4. **Mini Player** — Compact always-on-top window
-5. **Multi-Source** — JioSaavn, SoundCloud
-6. **AI Features** — Mood-based recommendations
+5. **Multi-Source** — SoundCloud, JioSaavn support
+6. **Data Import/Export** — JSON playlist backup and restore
 
 ## License
 

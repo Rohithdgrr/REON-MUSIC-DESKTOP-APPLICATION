@@ -1,15 +1,22 @@
 <template>
-  <div class="queue-panel" :class="{ open: isOpen }">
+  <div class="queue-panel" :class="{ open: isOpen }" :style="{ width: panelWidth + 'px', transform: isOpen ? 'translateX(0)' : `translateX(100%)` }">
+    <div class="resize-handle" @mousedown="startResize" title="Drag to resize"></div>
     <div class="queue-header">
       <h3 class="queue-title">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
         Queue
       </h3>
       <button class="close-btn" @click="$emit('close')">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
@@ -21,8 +28,10 @@
     </div>
 
     <div v-if="queue.length === 0" class="empty-queue">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
       </svg>
       <p>No songs in queue</p>
       <p class="empty-subtitle">Add songs to start playing</p>
@@ -30,13 +39,18 @@
 
     <div v-else class="queue-list">
       <div class="now-playing-section" v-if="currentTrack">
-        <div class="section-label">Now Playing</div>
+        <div class="section-label">
+          <svg class="now-playing-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          Now Playing
+        </div>
         <div class="queue-item current">
           <div class="item-thumbnail">
-            <img v-if="currentTrack.thumbnail" :src="currentTrack.thumbnail" alt="">
+            <img v-if="currentTrack.thumbnail && !brokenImages.has(currentTrack.thumbnail)" :src="currentTrack.thumbnail" @error="handleImageError(currentTrack.thumbnail)" alt="">
             <div v-else class="thumbnail-placeholder">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
               </svg>
             </div>
             <div class="playing-indicator">
@@ -65,15 +79,16 @@
           <template #item="{ element, index }">
             <div class="queue-item" :class="{ playing: isPlaying(index) }">
               <div class="drag-handle">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/>
+                  <circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
                 </svg>
               </div>
               <div class="item-thumbnail" @click="playFromQueue(index)">
-                <img v-if="element.thumbnail" :src="element.thumbnail" alt="">
+                <img v-if="element.thumbnail && !brokenImages.has(element.thumbnail)" :src="element.thumbnail" @error="handleImageError(element.thumbnail)" alt="">
                 <div v-else class="thumbnail-placeholder">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
                   </svg>
                 </div>
                 <div class="play-overlay">
@@ -88,8 +103,9 @@
               </div>
               <div class="item-actions">
                 <button class="action-btn" @click="removeFromQueue(index)" title="Remove">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
               </div>
@@ -101,15 +117,25 @@
     </div>
 
     <div class="queue-actions" v-if="queue.length > 0">
-      <button class="action-button" @click="saveAsPlaylist">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+      <div class="save-playlist-section" v-if="showSaveDialog">
+        <input v-model="playlistName" ref="saveInput" placeholder="Enter playlist name..." @keyup.enter="confirmSave" @keyup.esc="showSaveDialog = false" class="save-input" />
+        <div class="save-actions">
+          <button class="action-button primary small" @click="confirmSave" :disabled="!playlistName.trim()">Save</button>
+          <button class="action-button small" @click="showSaveDialog = false">Cancel</button>
+        </div>
+      </div>
+      <button v-else class="action-button" @click="startSave">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
         </svg>
         Save as Playlist
       </button>
       <button class="action-button danger" @click="clearQueue">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
         </svg>
         Clear Queue
       </button>
@@ -118,8 +144,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, onUnmounted } from 'vue'
 import { usePlayerStore } from '../stores/player.js'
+import { useLibraryStore } from '../stores/library.js'
+import { useNotifications } from '../composables/useNotifications.js'
 import { storeToRefs } from 'pinia'
 import draggable from 'vuedraggable'
 
@@ -127,10 +155,90 @@ const props = defineProps({
   isOpen: Boolean
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'resize'])
 
 const player = usePlayerStore()
+const library = useLibraryStore()
 const { queue, currentIndex, currentTrack } = storeToRefs(player)
+
+const brokenImages = ref(new Set())
+function handleImageError(url) {
+  if (url) brokenImages.value.add(url)
+}
+
+const { showNotification } = useNotifications()
+const showSaveDialog = ref(false)
+const playlistName = ref('')
+const saveInput = ref(null)
+
+function startSave() {
+  playlistName.value = ''
+  showSaveDialog.value = true
+  nextTick(() => saveInput.value?.focus())
+}
+
+async function confirmSave() {
+  const name = playlistName.value.trim()
+  if (!name) return
+  showSaveDialog.value = false
+  const result = await library.createPlaylist(name)
+  if (result.success) {
+    for (let i = 0; i < queue.value.length; i++) {
+      const track = queue.value[i]
+      await library.addSong({
+        videoId: track.videoId,
+        title: track.title,
+        artist: track.artist,
+        thumbnail: track.thumbnail || '',
+        duration: track.duration || 0
+      })
+      const songId = library.songs.find(s => s.video_id === track.videoId)?.id
+      if (songId) {
+        await library.addSongToPlaylist(result.data.id, songId, i)
+      }
+    }
+    showNotification({ title: 'Playlist Saved', message: `"${name}" with ${queue.value.length} songs`, type: 'success' })
+  }
+}
+
+const panelWidth = ref(380)
+const MIN_WIDTH = 300
+const MAX_WIDTH = 600
+let isResizing = false
+let startX = 0
+let startWidth = 0
+
+function startResize(e) {
+  isResizing = true
+  startX = e.clientX
+  startWidth = panelWidth.value
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  e.preventDefault()
+}
+
+function onResize(e) {
+  if (!isResizing) return
+  const delta = startX - e.clientX
+  const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta))
+  panelWidth.value = newWidth
+  emit('resize', newWidth)
+}
+
+function stopResize() {
+  isResizing = false
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+})
 
 const upcomingSongs = computed({
   get: () => queue.value.slice(currentIndex.value + 1),
@@ -191,22 +299,14 @@ function clearQueue() {
   }
 }
 
-function saveAsPlaylist() {
-  const name = prompt('Enter playlist name:')
-  if (name) {
-    // TODO: Implement save queue as playlist
-    console.log('Save queue as playlist:', name)
-  }
-}
 </script>
 
 <style scoped>
 .queue-panel {
   position: fixed;
-  right: -400px;
+  right: 0;
   top: 0;
   bottom: 0;
-  width: 380px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -214,8 +314,26 @@ function saveAsPlaylist() {
   box-shadow: -8px 0 30px rgba(0,0,0,0.4);
   display: flex;
   flex-direction: column;
-  transition: right var(--transition-spring);
+  transition: transform var(--transition-spring);
   z-index: 200;
+}
+
+.resize-handle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--color-primary);
+  opacity: 0.5;
 }
 
 .queue-panel.open {
@@ -226,23 +344,24 @@ function saveAsPlaylist() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-lg);
+  padding: 20px 24px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .queue-title {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-size: 1.25rem;
-  font-weight: 700;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: var(--font-bold);
   color: var(--color-text);
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .queue-title svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: var(--color-primary);
 }
 
@@ -270,44 +389,85 @@ function saveAsPlaylist() {
 }
 
 .queue-stats {
-  padding: var(--space-md) var(--space-lg);
-  font-size: 0.875rem;
+  padding: 12px 24px;
+  font-size: 0.8rem;
+  font-weight: var(--font-medium);
   color: var(--color-text-muted);
   display: flex;
-  gap: var(--space-sm);
+  gap: 8px;
   border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.02em;
 }
 
 .queue-list {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-md);
+  padding: 16px;
 }
 
 .section-label {
-  font-size: 0.75rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   color: var(--color-text-muted);
-  margin-bottom: var(--space-sm);
-  padding: 0 var(--space-sm);
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.now-playing-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
 }
 
 .now-playing-section,
 .next-up-section {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 24px;
+}
+
+.now-playing-section:last-child,
+.next-up-section:last-child {
+  margin-bottom: 0;
 }
 
 .queue-item {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   transition: all var(--transition-bounce);
   cursor: pointer;
   border: 1px solid transparent;
+  min-height: 72px;
+}
+
+.queue-item > .item-thumbnail {
+  flex-shrink: 0;
+}
+
+.queue-item > .item-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.queue-item > .item-duration {
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+}
+
+.queue-item > .item-actions {
+  flex-shrink: 0;
+}
+
+.queue-item > .drag-handle {
+  flex-shrink: 0;
 }
 
 .queue-item:hover {
@@ -317,9 +477,9 @@ function saveAsPlaylist() {
 }
 
 .queue-item.current {
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), transparent);
-  border: 1px solid rgba(249, 115, 22, 0.2);
-  box-shadow: inset 3px 0 0 var(--color-primary);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(236, 72, 153, 0.04));
+  border: 1px solid rgba(236, 72, 153, 0.25);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.15), inset 0 0 0 1px rgba(236, 72, 153, 0.1);
 }
 
 .drag-handle {
@@ -341,18 +501,24 @@ function saveAsPlaylist() {
 
 .item-thumbnail {
   position: relative;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .item-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.queue-item:hover .item-thumbnail img {
+  transform: scale(1.05);
 }
 
 .thumbnail-placeholder {
@@ -423,20 +589,28 @@ function saveAsPlaylist() {
 }
 
 .item-title {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: var(--font-semibold);
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.queue-item.current .item-title {
+  color: var(--color-primary);
 }
 
 .item-artist {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
+  margin-top: 2px;
 }
 
 .item-actions {
@@ -478,10 +652,14 @@ function saveAsPlaylist() {
 }
 
 .item-duration {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: var(--font-medium);
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
   flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
 }
 
 .empty-queue {
@@ -507,33 +685,79 @@ function saveAsPlaylist() {
   margin-top: var(--space-xs);
 }
 
+.save-playlist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.save-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.save-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-button.primary {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.action-button.primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.action-button.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-button.small {
+  flex: 0 1 auto;
+  padding: 6px 16px;
+  font-size: 0.78rem;
+}
+
 .queue-actions {
-  padding: var(--space-md) var(--space-lg);
+  padding: 16px 24px;
   border-top: 1px solid var(--color-border);
   display: flex;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
 .action-button {
   flex: 1;
-  padding: var(--space-sm) var(--space-md);
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: var(--font-semibold);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
+  gap: 6px;
   transition: all var(--transition-fast);
+  letter-spacing: 0.01em;
 }
 
 .action-button svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .action-button:hover {
@@ -555,9 +779,17 @@ function saveAsPlaylist() {
 
 @media (max-width: 768px) {
   .queue-panel {
-    width: 100%;
-    right: -100%;
+    width: 100% !important;
+    transform: translateX(100%);
     border-radius: 0;
+  }
+  
+  .queue-panel.open {
+    transform: translateX(0);
+  }
+  
+  .resize-handle {
+    display: none;
   }
 }
 </style>

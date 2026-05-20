@@ -75,6 +75,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player.js'
 import { waitForElectronApi, getElectronApi } from '../utils/electronApi.js'
 import TrackCard from '../components/TrackCard.vue'
+import { filterMusicContent } from '../utils/contentFilter.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -353,8 +354,10 @@ async function loadSongs() {
     const result = await electron.innertube.search(query)
     
     if (result.success) {
+      // Filter to music-only content
+      const musicResults = filterMusicContent(result.data || [])
       // Filter out duplicates
-      const newResults = result.data.filter(track => 
+      const newResults = musicResults.filter(track => 
         !results.value.some(existing => existing.videoId === track.videoId)
       )
       
@@ -401,6 +404,7 @@ function goBack() {
 <style scoped>
 .category-view {
   max-width: 1200px;
+  margin: 0 auto;
 }
 
 .category-header {
@@ -511,7 +515,15 @@ function goBack() {
 .results-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.results-list .track-card {
+  margin: 0;
 }
 
 .load-more-section {

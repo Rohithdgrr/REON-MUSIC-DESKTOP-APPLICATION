@@ -1,39 +1,33 @@
 <template>
-  <div class="notification-container">
-    <transition-group name="notification">
-      <div
-        v-for="notification in notifications"
-        :key="notification.id"
-        class="notification"
-        :class="`notification-${notification.type}`"
-        @click="removeNotification(notification.id)"
-      >
-        <div class="notification-icon">
-          <svg v-if="notification.type === 'success'" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
-          <svg v-else-if="notification.type === 'error'" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-          </svg>
-          <svg v-else-if="notification.type === 'warning'" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-          </svg>
+  <Teleport to="body">
+    <div class="notification-container">
+      <TransitionGroup name="notif">
+        <div
+          v-for="notif in notifications"
+          :key="notif.id"
+          class="notification"
+          :class="notif.type"
+          @click="removeNotification(notif.id)"
+        >
+          <div class="notif-content">
+            <svg v-if="notif.type === 'success'" class="notif-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <svg v-else-if="notif.type === 'error'" class="notif-icon error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <svg v-else class="notif-icon info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div class="notif-text">
+              <span class="notif-title">{{ notif.title }}</span>
+              <span v-if="notif.message" class="notif-message">{{ notif.message }}</span>
+            </div>
+          </div>
         </div>
-        <div class="notification-content">
-          <div class="notification-title">{{ notification.title }}</div>
-          <div v-if="notification.message" class="notification-message">{{ notification.message }}</div>
-        </div>
-        <button class="notification-close">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        </button>
-      </div>
-    </transition-group>
-  </div>
+      </TransitionGroup>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -45,135 +39,97 @@ const { notifications, removeNotification } = useNotifications()
 <style scoped>
 .notification-container {
   position: fixed;
-  top: var(--space-lg);
-  right: var(--space-lg);
+  top: 16px;
+  right: 16px;
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  max-width: 400px;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 380px;
 }
 
 .notification {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-  padding: var(--space-md);
+  pointer-events: auto;
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  padding: 14px 16px;
   box-shadow: var(--shadow-xl);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
 }
 
 .notification:hover {
   transform: translateX(-4px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.notification-success {
-  border-left: 4px solid var(--color-success);
+.notification.success {
+  border-left: 3px solid #22c55e;
 }
 
-.notification-error {
-  border-left: 4px solid var(--color-error);
+.notification.error {
+  border-left: 3px solid #ef4444;
 }
 
-.notification-warning {
-  border-left: 4px solid var(--color-warning);
+.notification.info {
+  border-left: 3px solid var(--color-primary);
 }
 
-.notification-info {
-  border-left: 4px solid var(--color-info);
+.notif-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.notification-icon {
+.notif-icon {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  margin-top: 1px;
 }
 
-.notification-success .notification-icon {
-  color: var(--color-success);
-}
+.notif-icon.success { color: #22c55e; }
+.notif-icon.error { color: #ef4444; }
+.notif-icon.info { color: var(--color-primary); }
 
-.notification-error .notification-icon {
-  color: var(--color-error);
-}
-
-.notification-warning .notification-icon {
-  color: var(--color-warning);
-}
-
-.notification-info .notification-icon {
-  color: var(--color-info);
-}
-
-.notification-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.notification-content {
-  flex: 1;
+.notif-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
-.notification-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-xs);
-}
-
-.notification-message {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  line-height: 1.4;
-}
-
-.notification-close {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  cursor: pointer;
-  color: var(--color-text-muted);
-  transition: color var(--transition-fast);
-}
-
-.notification-close:hover {
+.notif-title {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-text);
 }
 
-.notification-close svg {
-  width: 100%;
-  height: 100%;
+.notif-message {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.notification-enter-active,
-.notification-leave-active {
-  transition: all var(--transition-normal);
+.notif-enter-active {
+  transition: all 0.3s ease;
 }
 
-.notification-enter-from {
+.notif-leave-active {
+  transition: all 0.2s ease;
+}
+
+.notif-enter-from {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateX(40px);
 }
 
-.notification-leave-to {
+.notif-leave-to {
   opacity: 0;
-  transform: translateX(100%) scale(0.8);
-}
-
-@media (max-width: 768px) {
-  .notification-container {
-    left: var(--space-md);
-    right: var(--space-md);
-    max-width: none;
-  }
+  transform: translateX(40px);
 }
 </style>

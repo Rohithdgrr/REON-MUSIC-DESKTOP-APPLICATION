@@ -17,7 +17,9 @@ const defaultData = {
   playlistSongs: [],
   playHistory: [],
   favorites: [],
-  playCounts: {}
+  playCounts: {},
+  downloads: [],
+  downloadPath: ''
 }
 
 export async function initDatabase() {
@@ -29,6 +31,18 @@ export async function initDatabase() {
   const adapter = new JSONFile(dbPath)
   db = new Low(adapter, defaultData)
   await db.read()
+  
+  // Ensure all required properties exist with proper defaults
+  db.data = db.data || {}
+  db.data.songs = db.data.songs || []
+  db.data.playlists = db.data.playlists || []
+  db.data.playlistSongs = db.data.playlistSongs || []
+  db.data.playHistory = db.data.playHistory || []
+  db.data.favorites = db.data.favorites || []
+  db.data.playCounts = db.data.playCounts || {}
+  db.data.downloads = db.data.downloads || []
+  db.data.downloadPath = db.data.downloadPath || ''
+  
   await db.write()
 
   log.info('Database initialized successfully')

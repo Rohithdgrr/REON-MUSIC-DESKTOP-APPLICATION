@@ -1,6 +1,7 @@
-import { ipcMain } from 'electron'
+import { ipcMain, dialog } from 'electron'
 import { getDb } from '../db/connection.js'
 import log from 'electron-log'
+import fs from 'fs'
 
 function getNextId(arr) {
   if (!arr || arr.length === 0) return 1
@@ -12,6 +13,13 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure songs array exists
+      if (!db.data.songs) {
+        db.data.songs = []
+        await db.write()
+      }
+      
       const songs = [...db.data.songs].sort((a, b) => new Date(b.added_at) - new Date(a.added_at))
       return { success: true, data: songs }
     } catch (err) {
@@ -24,6 +32,12 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure songs array exists
+      if (!db.data.songs) {
+        db.data.songs = []
+      }
+      
       let existing = db.data.songs.find(s => s.video_id === song.videoId)
       if (!existing) {
         existing = {
@@ -62,6 +76,13 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure playlists array exists
+      if (!db.data.playlists) {
+        db.data.playlists = []
+        await db.write()
+      }
+      
       const playlists = [...db.data.playlists].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       return { success: true, data: playlists }
     } catch (err) {
@@ -74,8 +95,14 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure playlists array exists
+      if (!db.data.playlists) {
+        db.data.playlists = []
+      }
+      
       const id = getNextId(db.data.playlists)
-      const playlist = { id, name, created_at: new Date().toISOString() }
+      const playlist = { id, name, description: '', created_at: new Date().toISOString() }
       db.data.playlists.push(playlist)
       await db.write()
       return { success: true, data: playlist }
@@ -89,12 +116,46 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure arrays exist
+      if (!db.data.playlists) {
+        db.data.playlists = []
+      }
+      if (!db.data.playlistSongs) {
+        db.data.playlistSongs = []
+      }
+      
       db.data.playlists = db.data.playlists.filter(p => p.id !== playlistId)
       db.data.playlistSongs = db.data.playlistSongs.filter(ps => ps.playlist_id !== playlistId)
       await db.write()
       return { success: true }
     } catch (err) {
       log.error('IPC sqlite:deletePlaylist error:', err.message)
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('sqlite:updatePlaylist', async (_event, playlistId, data) => {
+    try {
+      const db = getDb()
+      await db.read()
+      
+      if (!db.data.playlists) {
+        db.data.playlists = []
+      }
+      
+      const index = db.data.playlists.findIndex(p => p.id === playlistId)
+      if (index === -1) {
+        return { success: false, error: 'Playlist not found' }
+      }
+      
+      if (data.name !== undefined) db.data.playlists[index].name = data.name
+      if (data.description !== undefined) db.data.playlists[index].description = data.description
+      
+      await db.write()
+      return { success: true, data: db.data.playlists[index] }
+    } catch (err) {
+      log.error('IPC sqlite:updatePlaylist error:', err.message)
       return { success: false, error: err.message }
     }
   })
@@ -138,10 +199,48 @@ export function registerSqliteIPC() {
       db.data.playlistSongs = db.data.playlistSongs.filter(
         ps => !(ps.playlist_id === playlistId && ps.song_id === songId)
       )
+      // Re-index positions after removal
+      const remaining = db.data.playlistSongs
+        .filter(ps => ps.playlist_id === playlistId)
+        .sort((a, b) => a.position - b.position)
+      remaining.forEach((ps, i) => {
+        const item = db.data.playlistSongs.find(p => p.playlist_id === ps.playlist_id && p.song_id === ps.song_id)
+        if (item) item.position = i
+      })
       await db.write()
       return { success: true }
     } catch (err) {
       log.error('IPC sqlite:removeSongFromPlaylist error:', err.message)
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('sqlite:reorderPlaylistTrack', async (_event, playlistId, songId, newPosition) => {
+    try {
+      const db = getDb()
+      await db.read()
+      
+      const entries = db.data.playlistSongs
+        .filter(ps => ps.playlist_id === playlistId)
+        .sort((a, b) => a.position - b.position)
+      
+      const oldIndex = entries.findIndex(ps => ps.song_id === songId)
+      if (oldIndex === -1) return { success: false, error: 'Song not in playlist' }
+      
+      // Remove from old position
+      const [moved] = entries.splice(oldIndex, 1)
+      // Insert at new position
+      entries.splice(newPosition, 0, moved)
+      // Re-index all positions
+      entries.forEach((ps, i) => {
+        const item = db.data.playlistSongs.find(p => p.playlist_id === playlistId && p.song_id === ps.song_id)
+        if (item) item.position = i
+      })
+      
+      await db.write()
+      return { success: true }
+    } catch (err) {
+      log.error('IPC sqlite:reorderPlaylistTrack error:', err.message)
       return { success: false, error: err.message }
     }
   })
@@ -206,6 +305,13 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure favorites array exists
+      if (!db.data.favorites) {
+        db.data.favorites = []
+        await db.write()
+      }
+      
       const favorites = db.data.favorites
         .slice()
         .sort((a, b) => new Date(b.added_at) - new Date(a.added_at))
@@ -231,6 +337,12 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure favorites array exists
+      if (!db.data.favorites) {
+        db.data.favorites = []
+      }
+      
       const exists = db.data.favorites.find(f => f.song_id === songId)
       if (!exists) {
         db.data.favorites.push({
@@ -251,6 +363,12 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure favorites array exists
+      if (!db.data.favorites) {
+        db.data.favorites = []
+      }
+      
       db.data.favorites = db.data.favorites.filter(f => f.song_id !== songId)
       await db.write()
       return { success: true }
@@ -264,6 +382,12 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
+      
+      // Ensure favorites array exists
+      if (!db.data.favorites) {
+        db.data.favorites = []
+      }
+      
       const isFavorite = db.data.favorites.some(f => f.song_id === songId)
       return { success: true, data: isFavorite }
     } catch (err) {
@@ -365,6 +489,80 @@ export function registerSqliteIPC() {
       return { success: true, data: topArtists }
     } catch (err) {
       log.error('IPC sqlite:getTopArtists error:', err.message)
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('sqlite:exportPlaylists', async () => {
+    try {
+      const db = getDb()
+      await db.read()
+      const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        playlists: db.data.playlists || [],
+        playlistSongs: db.data.playlistSongs || []
+      }
+      const { filePath, canceled } = await dialog.showSaveDialog({
+        title: 'Export Playlists',
+        defaultPath: `music-reon-playlists-${Date.now()}.json`,
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      })
+      if (canceled || !filePath) return { success: false, canceled: true }
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+      return { success: true, filePath }
+    } catch (err) {
+      log.error('IPC sqlite:exportPlaylists error:', err.message)
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('sqlite:importPlaylists', async () => {
+    try {
+      const { filePaths, canceled } = await dialog.showOpenDialog({
+        title: 'Import Playlists',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+        properties: ['openFile']
+      })
+      if (canceled || !filePaths?.length) return { success: false, canceled: true }
+      
+      const raw = fs.readFileSync(filePaths[0], 'utf-8')
+      const data = JSON.parse(raw)
+      
+      if (!data.playlists || !Array.isArray(data.playlists)) {
+        return { success: false, error: 'Invalid playlist file' }
+      }
+      
+      const db = getDb()
+      await db.read()
+      
+      const existingIds = new Set((db.data.playlists || []).map(p => p.id))
+      let imported = 0
+      
+      for (const pl of data.playlists) {
+        if (!existingIds.has(pl.id)) {
+          db.data.playlists.push(pl)
+          existingIds.add(pl.id)
+          imported++
+        }
+      }
+      
+      // Import playlist songs
+      const existingPS = new Set(
+        (db.data.playlistSongs || []).map(ps => `${ps.playlist_id}-${ps.song_id}`)
+      )
+      for (const ps of (data.playlistSongs || [])) {
+        const key = `${ps.playlist_id}-${ps.song_id}`
+        if (!existingPS.has(key) && existingIds.has(ps.playlist_id)) {
+          db.data.playlistSongs.push(ps)
+          existingPS.add(key)
+        }
+      }
+      
+      await db.write()
+      return { success: true, imported }
+    } catch (err) {
+      log.error('IPC sqlite:importPlaylists error:', err.message)
       return { success: false, error: err.message }
     }
   })

@@ -1,54 +1,151 @@
 import { onMounted, onUnmounted } from 'vue'
 
-/**
- * Composable for handling media keyboard shortcuts
- */
-export function useMediaKeys(player) {
+export function useMediaKeys(player, options = {}) {
+  const { router, toggleQueue, focusSearch } = options
+
   const handleKeyPress = (event) => {
-    // Don't trigger if user is typing in an input
-    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT') {
+      if (event.key === 'Escape') {
+        event.target.blur()
+      }
       return
     }
 
+    const ctrl = event.ctrlKey || event.metaKey
+
     switch (event.key) {
       case ' ':
-        // Spacebar - play/pause
         event.preventDefault()
         player.togglePlay()
         break
+
       case 'ArrowRight':
-        // Right arrow - seek forward 5s
-        if (event.shiftKey) {
+        if (ctrl) {
+          event.preventDefault()
           player.playNext()
         } else {
-          const newPercent = Math.min(100, player.progressPercent + 5)
-          player.seekTo(newPercent)
+          event.preventDefault()
+          player.seekTo(Math.min(100, player.progressPercent + 5))
         }
         break
+
       case 'ArrowLeft':
-        // Left arrow - seek backward 5s
-        if (event.shiftKey) {
+        if (ctrl) {
+          event.preventDefault()
           player.playPrevious()
         } else {
-          const newPercent = Math.max(0, player.progressPercent - 5)
-          player.seekTo(newPercent)
+          event.preventDefault()
+          player.seekTo(Math.max(0, player.progressPercent - 5))
         }
         break
+
       case 'ArrowUp':
-        // Up arrow - volume up
-        event.preventDefault()
-        player.setVolume(Math.min(1, player.volume + 0.1))
+        if (ctrl) {
+          event.preventDefault()
+          player.setVolume(Math.min(1, player.volume + 0.1))
+        }
         break
+
       case 'ArrowDown':
-        // Down arrow - volume down
-        event.preventDefault()
-        player.setVolume(Math.max(0, player.volume - 0.1))
+        if (ctrl) {
+          event.preventDefault()
+          player.setVolume(Math.max(0, player.volume - 0.1))
+        }
         break
+
       case 'm':
       case 'M':
-        // M - mute/unmute
+        event.preventDefault()
         player.setVolume(player.volume > 0 ? 0 : 0.8)
         break
+
+      case 's':
+      case 'S':
+        if (!ctrl) {
+          event.preventDefault()
+          player.toggleShuffle()
+        }
+        break
+
+      case 'r':
+      case 'R':
+        if (!ctrl) {
+          event.preventDefault()
+          player.cycleRepeatMode()
+        }
+        break
+
+      case 'q':
+      case 'Q':
+        if (!ctrl && toggleQueue) {
+          event.preventDefault()
+          toggleQueue()
+        }
+        break
+
+      case '/':
+        if (!ctrl && focusSearch) {
+          event.preventDefault()
+          focusSearch()
+        }
+        break
+
+      case 'Escape':
+        if (toggleQueue) {
+          toggleQueue(false)
+        }
+        break
+    }
+
+    if (ctrl) {
+      switch (event.key) {
+        case 'h':
+        case 'H':
+          event.preventDefault()
+          router?.push('/')
+          break
+        case 'f':
+        case 'F':
+          event.preventDefault()
+          router?.push('/search')
+          break
+        case 'l':
+        case 'L':
+          event.preventDefault()
+          router?.push('/library')
+          break
+        case 'd':
+        case 'D':
+          event.preventDefault()
+          router?.push('/favorites')
+          break
+        case ',':
+          event.preventDefault()
+          router?.push('/settings')
+          break
+        case '/':
+          event.preventDefault()
+          router?.push('/shortcuts')
+          break
+      }
+    }
+
+    if (event.key.startsWith('Media')) {
+      event.preventDefault()
+      switch (event.key) {
+        case 'MediaPlayPause':
+          player.togglePlay()
+          break
+        case 'MediaTrackNext':
+          player.playNext()
+          break
+        case 'MediaTrackPrevious':
+          player.playPrevious()
+          break
+        case 'MediaStop':
+          player.stop()
+          break
+      }
     }
   }
 

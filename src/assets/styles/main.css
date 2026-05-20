@@ -1,5 +1,5 @@
 @import './variables.css';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,13 +16,32 @@ html, body, #app {
 }
 
 body {
-  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-normal);
   background-color: var(--color-background);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
 
 /* Theme transition for all elements */
 * {
@@ -40,7 +59,7 @@ body {
   transition-property: background-color, border-color, color;
 }
 
-/* Custom Scrollbar - Orange themed */
+/* Custom Scrollbar - Themed */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -51,17 +70,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(249, 115, 22, 0.2);
+  background: var(--color-border-light);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(249, 115, 22, 0.4);
+  background: var(--color-border);
 }
 
 /* Selection */
 ::selection {
-  background: rgba(249, 115, 22, 0.35);
+  background: rgba(99, 102, 241, 0.25);
   color: var(--color-text);
 }
 
@@ -179,4 +198,42 @@ html {
     background: white;
     color: black;
   }
+}
+
+/* Back button - shared across views */
+.back-btn {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.back-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-text);
+}
+
+.back-btn:hover {
+  background: var(--color-surface-hover);
+  transform: scale(1.05);
+}
+
+/* Header top row for back button + title */
+.header-top-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Back row for PlaylistView */
+.back-row {
+  margin-bottom: 8px;
 }

@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { waitForElectronApi, getElectronApi } from '../utils/electronApi.js'
+import { filterMusicContent } from '../utils/contentFilter.js'
 
 export const useSearchStore = defineStore('search', () => {
   const query = ref('')
   const results = ref([])
   const isLoading = ref(false)
   const error = ref(null)
+  const filterType = ref('music') // 'music' | 'all'
 
   async function performSearch(searchQuery) {
     if (!searchQuery?.trim()) {
@@ -19,13 +21,16 @@ export const useSearchStore = defineStore('search', () => {
     query.value = searchQuery
 
     try {
-      // Wait for electron API to be ready
       await waitForElectronApi()
       const electron = getElectronApi()
       
       const result = await electron.innertube.search(searchQuery.trim())
       if (result.success) {
-        results.value = result.data
+        let filtered = result.data
+        if (filterType.value === 'music') {
+          filtered = filterMusicContent(filtered)
+        }
+        results.value = filtered
       } else {
         error.value = result.error || 'Search failed'
         results.value = []
@@ -39,6 +44,10 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  function setFilterType(type) {
+    filterType.value = type
+  }
+
   function clearResults() {
     results.value = []
     query.value = ''
@@ -50,7 +59,9 @@ export const useSearchStore = defineStore('search', () => {
     results,
     isLoading,
     error,
+    filterType,
     performSearch,
+    setFilterType,
     clearResults
   }
 })

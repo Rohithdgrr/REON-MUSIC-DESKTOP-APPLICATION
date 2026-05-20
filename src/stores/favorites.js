@@ -5,6 +5,7 @@ import { normalizeTrack } from '../utils/trackNormalizer.js'
 
 export const useFavoritesStore = defineStore('favorites', () => {
   const favorites = ref(new Set())
+  const favoriteVideos = ref(new Map())
   const favoriteSongs = ref([])
   const isLoaded = ref(false)
   
@@ -23,6 +24,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
       
       if (result.success) {
         favorites.value = new Set(result.data.map(f => f.song_id))
+        const vidMap = new Map()
+        result.data.forEach(f => {
+          if (f.video_id) vidMap.set(f.video_id, true)
+        })
+        favoriteVideos.value = vidMap
         favoriteSongs.value = result.data.map(f => normalizeTrack({
           id: f.song_id,
           song_id: f.song_id,
@@ -47,39 +53,51 @@ export const useFavoritesStore = defineStore('favorites', () => {
       await waitForElectronApi()
       const electron = getElectronApi()
       const normalizedSong = normalizeTrack(song)
+      const videoId = normalizedSong.videoId
       
-      // Ensure song is in library first
-      const addResult = await electron.sqlite.addSong({
-        videoId: normalizedSong.videoId,
-        title: normalizedSong.title,
-        artist: normalizedSong.artist,
-        thumbnail: normalizedSong.thumbnail || '',
-        duration: normalizedSong.duration || 0
-      })
-      
-      if (!addResult.success) {
-        throw new Error('Failed to add song to library')
+      if (!videoId) {
+        console.error('Cannot toggle favorite: no videoId')
+        return
       }
       
-      const songId = addResult.data.id
-      
-      if (favorites.value.has(songId)) {
-        // Remove from favorites
+      if (favoriteVideos.value.has(videoId)) {
+        const songId = [...favorites.value].find(id => {
+          const s = favoriteSongs.value.find(s => s.id === id)
+          return s?.videoId === videoId
+        }) || getSongIdByVideoId(videoId)
+        
+        if (!songId) return
+
         const result = await electron.sqlite.removeFavorite(songId)
         if (result.success) {
           favorites.value.delete(songId)
-          favoriteSongs.value = favoriteSongs.value.filter(s => s.id !== songId)
+          favoriteVideos.value.delete(videoId)
+          favoriteSongs.value = favoriteSongs.value.filter(s => s.videoId !== videoId)
         }
       } else {
-        // Add to favorites
+        const addResult = await electron.sqlite.addSong({
+          videoId: normalizedSong.videoId,
+          title: normalizedSong.title,
+          artist: normalizedSong.artist,
+          thumbnail: normalizedSong.thumbnail || '',
+          duration: normalizedSong.duration || 0
+        })
+        
+        if (!addResult.success) {
+          throw new Error('Failed to add song to library')
+        }
+        
+        const songId = addResult.data.id
+
         const result = await electron.sqlite.addFavorite(songId)
         if (result.success) {
           favorites.value.add(songId)
+          favoriteVideos.value.set(videoId, true)
           favoriteSongs.value.unshift(normalizeTrack({
             id: songId,
             song_id: songId,
-            videoId: normalizedSong.videoId,
-            video_id: normalizedSong.videoId,
+            videoId: videoId,
+            video_id: videoId,
             title: normalizedSong.title,
             artist: normalizedSong.artist,
             thumbnail: normalizedSong.thumbnail,
@@ -93,12 +111,19 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
   
+  function getSongIdByVideoId(videoId) {
+    for (const f of favoriteSongs.value) {
+      if (f.videoId === videoId) return f.id
+    }
+    return null
+  }
+  
   function isFavorite(songId) {
     return favorites.value.has(songId)
   }
   
   function isFavoriteByVideoId(videoId) {
-    return favoriteSongs.value.some(s => s.videoId === videoId)
+    return favoriteVideos.value.has(videoId)
   }
   
   return {

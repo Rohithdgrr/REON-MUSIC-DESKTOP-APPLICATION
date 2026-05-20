@@ -9,6 +9,44 @@ class InnertubeService {
   constructor() {
     this.yt = null
     this.initialized = false
+    this.MAX_MUSIC_DURATION = 1800 // 30 minutes
+  }
+
+  isMusicContent(item) {
+    const duration = item.duration?.seconds || 0
+    if (duration === 0) return false
+
+    const title = (item.title?.text || '').toLowerCase()
+    const category = (item.category || '').toLowerCase()
+
+    // Explicit non-music indicators
+    if (item.isPodcast === true) return false
+    if (item.isLivestream === true) return false
+    if (category === 'podcast' || category === 'audiobook') return false
+
+    // Title-based exclusions
+    const excludeKeywords = ['podcast', 'interview', 'audiobook', 'talk show', 'full movie', 'trailer']
+    const hasExcludeKeyword = excludeKeywords.some(kw => title.includes(kw))
+    if (hasExcludeKeyword) {
+      if (item.isMusicVideo !== true && category !== 'music') {
+        return false
+      }
+    }
+
+    // Duration check with exceptions for long-runtime music
+    if (duration > this.MAX_MUSIC_DURATION) {
+      const longMusicKeywords = ['dj mix', 'live concert', 'full album', 'classical', 'symphony', 'opera', 'live set']
+      const isLongMusic = longMusicKeywords.some(kw => title.includes(kw))
+      if (!isLongMusic && category !== 'music') {
+        return false
+      }
+    }
+
+    // Positive music indicators
+    if (item.isMusicVideo === true) return true
+    if (category === 'music') return true
+
+    return true
   }
 
   async init() {
@@ -128,7 +166,18 @@ class InnertubeService {
     }
 
     return results.results
-      .filter(item => item.type === 'Video' || item.type === 'Movie')
+      .filter(item => {
+        const isVideoOrMovie = item.type === 'Video' || item.type === 'Movie'
+        const isMusic = this.isMusicContent(item)
+
+        if (isVideoOrMovie && !isMusic) {
+          const title = item.title?.text || 'unknown'
+          const duration = item.duration?.seconds || 0
+          log.debug(`Filtered non-music content: "${title}" (${duration}s, ${item.category || 'no category'})`)
+        }
+
+        return isVideoOrMovie && isMusic
+      })
       .map(item => ({
         videoId: item.id,
         title: item.title?.text || 'Unknown',

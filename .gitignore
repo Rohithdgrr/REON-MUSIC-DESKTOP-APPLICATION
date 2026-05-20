@@ -37,6 +37,8 @@ Desktop.ini
 
 # local workspace and temporary folders
 .kilo/
+.kiro/
+.opencode/
 tmp/
 temp/
 

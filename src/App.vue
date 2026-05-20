@@ -5,12 +5,17 @@
       <div class="glow-orb orb-2"></div>
     </div>
 
-    <Sidebar />
-    <main class="main-content" :class="{ 'has-player': player.currentTrack }">
+    <button class="sidebar-toggle" @click="isSidebarOpen = !isSidebarOpen" :class="{ open: isSidebarOpen }" title="Toggle sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <Sidebar :isOpen="isSidebarOpen" @toggle="isSidebarOpen = !isSidebarOpen" @resize="onSidebarResize" />
+    <main class="main-content" :class="{ 'has-player': player.currentTrack }" :style="{ marginLeft: isSidebarOpen ? sidebarWidth + 'px' : '0', marginRight: isQueueOpen ? queueWidth + 'px' : (player.currentTrack ? '300px' : '0') }">
       <router-view />
     </main>
     <PlayerBar @toggleQueue="isQueueOpen = !isQueueOpen" />
-    <QueuePanel :isOpen="isQueueOpen" @close="isQueueOpen = false" />
+    <QueuePanel :isOpen="isQueueOpen" @close="isQueueOpen = false" @resize="onQueueResize" />
     <NotificationContainer />
   </div>
 </template>
@@ -26,10 +31,32 @@ import { useMediaKeys } from './composables/useMediaKeys.js'
 import { useTheme } from './composables/useTheme.js'
 import { useNotifications } from './composables/useNotifications.js'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const player = usePlayerStore()
 const favoritesStore = useFavoritesStore()
-useMediaKeys(player)
+
+function toggleQueue(open) {
+  if (typeof open === 'boolean') {
+    isQueueOpen.value = open
+  } else {
+    isQueueOpen.value = !isQueueOpen.value
+  }
+}
+
+function focusSearch() {
+  if (router.currentRoute?.value?.path !== '/search') {
+    router.push('/search')
+  }
+  // Focus the search input after navigation
+  setTimeout(() => {
+    const input = document.querySelector('.search-box input')
+    input?.focus()
+  }, 100)
+}
+
+useMediaKeys(player, { router, toggleQueue, focusSearch })
 
 const { loadTheme } = useTheme()
 const { requestPermission } = useNotifications()
@@ -37,6 +64,17 @@ const { requestPermission } = useNotifications()
 const electronReady = ref(false)
 const apiCheckAttempts = ref(0)
 const isQueueOpen = ref(false)
+const isSidebarOpen = ref(true)
+const sidebarWidth = ref(260)
+const queueWidth = ref(380)
+
+function onSidebarResize(width) {
+  sidebarWidth.value = width
+}
+
+function onQueueResize(width) {
+  queueWidth.value = width
+}
 
 // Debug: Check if window.electron is available
 onMounted(() => {
@@ -122,29 +160,55 @@ onMounted(() => {
   left: 200px;
 }
 
+.sidebar-toggle {
+  position: fixed;
+  left: 8px;
+  top: 10px;
+  z-index: 60;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.sidebar-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.sidebar-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+.sidebar-toggle.open {
+  left: calc(v-bind(sidebarWidth) * 1px + 8px);
+}
+
 .main-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 40px 0 40px;
-  margin-left: var(--sidebar-width);
-  margin-right: 0;
-  margin-bottom: 0;
+  padding: 0 40px;
   position: relative;
   z-index: 10;
-  transition: margin-right var(--transition-normal);
-}
-
-.main-content.has-player {
-  margin-right: var(--player-sidebar-width);
+  transition: margin-left var(--transition-spring), margin-right var(--transition-normal);
 }
 
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 0;
-    margin-right: 0;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     padding: 0 16px;
     margin-bottom: 80px;
+  }
+  
+  .sidebar-toggle.open {
+    left: 8px !important;
   }
 }
 </style>

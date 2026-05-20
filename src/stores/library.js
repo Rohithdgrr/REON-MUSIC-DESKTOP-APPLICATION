@@ -110,6 +110,99 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  async function getPlaylistSongs(playlistId) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.getPlaylistSongs(playlistId)
+      if (result.success) {
+        return result.data
+      }
+      return []
+    } catch (err) {
+      error.value = err.message
+      return []
+    }
+  }
+
+  async function addSongToPlaylist(playlistId, songId, position) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.addSongToPlaylist(playlistId, songId, position)
+      return result.success
+    } catch (err) {
+      error.value = err.message
+      return false
+    }
+  }
+
+  async function removeSongFromPlaylist(playlistId, songId) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.removeSongFromPlaylist(playlistId, songId)
+      return result.success
+    } catch (err) {
+      error.value = err.message
+      return false
+    }
+  }
+
+  async function reorderPlaylistTrack(playlistId, songId, newPosition) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.reorderPlaylistTrack(playlistId, songId, newPosition)
+      return result.success
+    } catch (err) {
+      error.value = err.message
+      return false
+    }
+  }
+
+  async function exportPlaylists() {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.exportPlaylists()
+      return result
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
+  async function importPlaylists() {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.importPlaylists()
+      if (result.success) {
+        await loadPlaylists()
+      }
+      return result
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
+  async function updatePlaylist(id, data) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      const result = await electron.sqlite.updatePlaylist(id, data)
+      if (result.success) {
+        await loadPlaylists()
+      }
+      return result
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
   // History
   async function loadHistory() {
     try {
@@ -119,6 +212,8 @@ export const useLibraryStore = defineStore('library', () => {
       const result = await electron.sqlite.getHistory()
       if (result.success) {
         history.value = result.data
+      } else {
+        error.value = result.error
       }
     } catch (err) {
       error.value = err.message
@@ -135,8 +230,10 @@ export const useLibraryStore = defineStore('library', () => {
       if (result.success) {
         history.value = []
       }
+      return result.success
     } catch (err) {
       error.value = err.message
+      return false
     }
   }
 
@@ -152,6 +249,13 @@ export const useLibraryStore = defineStore('library', () => {
     loadPlaylists,
     createPlaylist,
     deletePlaylist,
+    getPlaylistSongs,
+    addSongToPlaylist,
+    removeSongFromPlaylist,
+    reorderPlaylistTrack,
+    exportPlaylists,
+    importPlaylists,
+    updatePlaylist,
     loadHistory,
     clearHistory
   }

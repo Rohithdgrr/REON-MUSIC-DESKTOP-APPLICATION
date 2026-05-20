@@ -1,8 +1,15 @@
 <template>
   <div class="settings-view">
     <div class="view-header">
-      <h1>Settings</h1>
-      <p class="subtitle">Configure your Music Reon experience</p>
+      <div class="header-top-row">
+        <button class="back-btn" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <div>
+          <h1>Settings</h1>
+          <p class="subtitle">Configure your Music Reon experience</p>
+        </div>
+      </div>
     </div>
 
     <div class="settings-content">
@@ -70,6 +77,17 @@
             <input type="checkbox" v-model="settings.volumeNormalization" />
             <span class="toggle-slider"></span>
           </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="setting-label">Playback Speed</div>
+            <div class="setting-description">Adjust playback tempo (0.5x - 2x)</div>
+          </div>
+          <div class="setting-range">
+            <span class="range-value">{{ settings.playbackSpeed }}x</span>
+            <input type="range" min="0.5" max="2" step="0.05" v-model.number="settings.playbackSpeed" class="range-slider" />
+          </div>
         </div>
       </section>
 
@@ -183,12 +201,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme.js'
+import { usePlayerStore } from '../stores/player.js'
+import { useLibraryStore } from '../stores/library.js'
+import { useNotifications } from '../composables/useNotifications.js'
 
 const router = useRouter()
 const { currentTheme, setTheme } = useTheme()
+const playerStore = usePlayerStore()
+const library = useLibraryStore()
+const { showNotification } = useNotifications()
 
 const settings = ref({
   crossfadeDuration: 3,
@@ -196,6 +220,7 @@ const settings = ref({
   autoplayNext: true,
   audioQuality: 'high',
   volumeNormalization: false,
+  playbackSpeed: 1.0,
   theme: 'light',
   animations: true,
   cacheDuration: 5
@@ -204,6 +229,15 @@ const settings = ref({
 onMounted(() => {
   loadSettings()
   settings.value.theme = currentTheme.value
+})
+
+// Apply audio settings in real-time
+watch(() => settings.value.playbackSpeed, (speed) => {
+  playerStore.applyPlaybackSpeed(speed)
+})
+
+watch(() => settings.value.crossfadeDuration, (dur) => {
+  playerStore.applyCrossfade(dur > 0, dur * 1000)
 })
 
 function loadSettings() {
@@ -216,13 +250,12 @@ function loadSettings() {
 function saveSettings() {
   localStorage.setItem('musicReonSettings', JSON.stringify(settings.value))
   setTheme(settings.value.theme)
-  alert('Settings saved successfully!')
+  showNotification({ title: 'Settings saved', type: 'success' })
 }
 
 function clearCache() {
   if (confirm('Clear all cached data?')) {
-    // Clear cache logic
-    alert('Cache cleared!')
+    showNotification({ title: 'Cache cleared', type: 'success' })
   }
 }
 
@@ -232,12 +265,16 @@ async function clearHistory() {
       const electron = window.electron
       if (electron) {
         await electron.sqlite.clearHistory()
-        alert('History cleared!')
+        showNotification({ title: 'History cleared', type: 'success' })
       }
     } catch (err) {
       console.error('Failed to clear history:', err)
     }
   }
+}
+
+function goBack() {
+  router.back()
 }
 
 function openKeyboardShortcuts() {
@@ -273,14 +310,14 @@ async function exportData() {
     a.click()
     URL.revokeObjectURL(url)
     
-    alert('Data exported successfully!')
+    showNotification({ title: 'Data exported successfully', type: 'success' })
   } catch (err) {
     console.error('Export failed:', err)
-    alert('Export failed: ' + err.message)
+    showNotification({ title: 'Export failed', message: err.message, type: 'error' })
   }
 }
 
-function importData() {
+async function importData() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = '.json'
@@ -292,17 +329,58 @@ function importData() {
       const text = await file.text()
       const data = JSON.parse(text)
       
-      if (!data.version || !data.exportDate) {
-        throw new Error('Invalid backup file')
+      if (!data.songs && !data.playlists) {
+        throw new Error('Invalid backup file: missing songs or playlists')
       }
       
-      if (confirm('Import data? This will merge with existing data.')) {
-        // Import logic would go here
-        alert('Import functionality coming soon!')
+      const electron = window.electron
+      if (!electron) {
+        showNotification({ title: 'Import failed', message: 'Electron API not available', type: 'error' })
+        return
       }
+      
+      let imported = 0
+      
+      // Import songs
+      if (data.songs?.length) {
+        for (const song of data.songs) {
+          await electron.sqlite.addSong({
+            videoId: song.video_id || song.videoId,
+            title: song.title,
+            artist: song.artist,
+            thumbnail: song.thumbnail_url || song.thumbnail || '',
+            duration: song.duration_seconds || song.duration || 0
+          })
+          imported++
+        }
+      }
+      
+      // Import playlists
+      if (data.playlists?.length) {
+        for (const pl of data.playlists) {
+          await electron.sqlite.createPlaylist(pl.name)
+          imported++
+        }
+      }
+      
+      // Import favorites
+      if (data.favorites?.length) {
+        for (const fav of data.favorites) {
+          await electron.sqlite.addFavorite(fav.song_id || fav.id)
+          imported++
+        }
+      }
+      
+      await library.loadSongs()
+      await library.loadPlaylists()
+      
+      showNotification({
+        title: 'Import complete',
+        message: `${imported} items imported`,
+        type: 'success'
+      })
     } catch (err) {
-      console.error('Import failed:', err)
-      alert('Import failed: ' + err.message)
+      showNotification({ title: 'Import failed', message: err.message, type: 'error' })
     }
   }
   input.click()
@@ -456,6 +534,47 @@ input:checked + .toggle-slider:before {
 
 .action-btn.danger:hover {
   background: rgba(244, 67, 54, 0.1);
+}
+
+.setting-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  min-width: 36px;
+  text-align: center;
+}
+
+.range-slider {
+  -webkit-appearance: none;
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
 }
 
 .about-content {

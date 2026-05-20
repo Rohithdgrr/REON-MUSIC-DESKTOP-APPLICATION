@@ -46,7 +46,7 @@ function setupBrowserMock() {
       getPlaylists: async () => ({ success: true, data: db.get('playlists') }),
       createPlaylist: async (name) => {
         const p = db.get('playlists');
-        const playlist = { id: getNextId(p), name, created_at: new Date().toISOString() };
+        const playlist = { id: getNextId(p), name, description: '', created_at: new Date().toISOString() };
         p.push(playlist);
         db.set('playlists', p);
         return { success: true, data: playlist };
@@ -55,6 +55,15 @@ function setupBrowserMock() {
         db.set('playlists', db.get('playlists').filter(p => p.id !== id));
         db.set('playlistSongs', db.get('playlistSongs').filter(ps => ps.playlist_id !== id));
         return { success: true };
+      },
+      updatePlaylist: async (id, data) => {
+        const pl = db.get('playlists');
+        const idx = pl.findIndex(p => p.id === id);
+        if (idx === -1) return { success: false, error: 'Not found' };
+        if (data.name !== undefined) pl[idx].name = data.name;
+        if (data.description !== undefined) pl[idx].description = data.description;
+        db.set('playlists', pl);
+        return { success: true, data: pl[idx] };
       },
       getPlaylistSongs: async (pid) => {
         const ps = db.get('playlistSongs').filter(p => p.playlist_id === pid).sort((a, b) => a.position - b.position);
@@ -70,7 +79,24 @@ function setupBrowserMock() {
         return { success: true };
       },
       removeSongFromPlaylist: async (pid, sid) => {
-        db.set('playlistSongs', db.get('playlistSongs').filter(p => !(p.playlist_id === pid && p.song_id === sid)));
+        const ps = db.get('playlistSongs');
+        db.set('playlistSongs', ps.filter(p => !(p.playlist_id === pid && p.song_id === sid)));
+        // Re-index
+        const remaining = db.get('playlistSongs').filter(p => p.playlist_id === pid).sort((a, b) => a.position - b.position);
+        const all = db.get('playlistSongs');
+        remaining.forEach((p, i) => { const item = all.find(x => x.playlist_id === p.playlist_id && x.song_id === p.song_id); if (item) item.position = i; });
+        db.set('playlistSongs', all);
+        return { success: true };
+      },
+      reorderPlaylistTrack: async (pid, sid, newPos) => {
+        const ps = db.get('playlistSongs');
+        const entries = ps.filter(p => p.playlist_id === pid).sort((a, b) => a.position - b.position);
+        const idx = entries.findIndex(p => p.song_id === sid);
+        if (idx === -1) return { success: false };
+        const [moved] = entries.splice(idx, 1);
+        entries.splice(newPos, 0, moved);
+        entries.forEach((p, i) => { const item = ps.find(x => x.playlist_id === p.playlist_id && x.song_id === p.song_id); if (item) item.position = i; });
+        db.set('playlistSongs', ps);
         return { success: true };
       },
       addToHistory: async (sid) => {
@@ -142,6 +168,46 @@ function setupBrowserMock() {
         });
         const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([name, c]) => ({ name, playCount: c }));
         return { success: true, data: top };
+      },
+      exportPlaylists: async () => {
+        const data = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          playlists: db.get('playlists'),
+          playlistSongs: db.get('playlistSongs')
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `music-reon-playlists-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return { success: true };
+      },
+      importPlaylists: async () => {
+        return { success: false, canceled: true }; // Browser mock uses SettingsView import
+      }
+    },
+    downloads: {
+      getDownloads: async () => ({ success: true, data: db.get('downloads') }),
+      addDownload: async (track) => {
+        const d = db.get('downloads');
+        if (!d.find(x => x.videoId === track.videoId)) {
+          d.push({ id: getNextId(d), videoId: track.videoId, title: track.title, artist: track.artist, thumbnail: track.thumbnail || '', duration: track.duration || 0, downloadedAt: new Date().toISOString() });
+          db.set('downloads', d);
+        }
+        return { success: true };
+      },
+      removeDownload: async (id) => {
+        db.set('downloads', db.get('downloads').filter(d => d.id !== id));
+        return { success: true };
+      },
+      getDownloadPath: async () => ({ success: true, data: '' }),
+      isDownloaded: async (videoId) => ({ success: true, data: db.get('downloads').some(d => d.videoId === videoId) }),
+      getDownloadStatus: async (videoId) => {
+        const dl = db.get('downloads').find(d => d.videoId === videoId);
+        return { success: true, data: dl ? 'completed' : null };
       }
     }
   };
