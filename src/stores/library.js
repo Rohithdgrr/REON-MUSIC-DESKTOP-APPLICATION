@@ -203,6 +203,22 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
+  async function reorderPlaylists(orderedIds) {
+    try {
+      await waitForElectronApi()
+      const electron = getElectronApi()
+      for (let i = 0; i < orderedIds.length; i++) {
+        const timestamp = new Date(Date.now() + i).toISOString()
+        await electron.sqlite.updatePlaylist(orderedIds[i], { created_at: timestamp })
+      }
+      await loadPlaylists()
+      return { success: true }
+    } catch (err) {
+      error.value = err.message
+      return { success: false, error: err.message }
+    }
+  }
+
   // History
   async function loadHistory() {
     try {
@@ -253,6 +269,7 @@ export const useLibraryStore = defineStore('library', () => {
     addSongToPlaylist,
     removeSongFromPlaylist,
     reorderPlaylistTrack,
+    reorderPlaylists,
     exportPlaylists,
     importPlaylists,
     updatePlaylist,

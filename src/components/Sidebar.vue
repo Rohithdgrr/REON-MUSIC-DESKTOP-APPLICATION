@@ -54,15 +54,23 @@
       <div v-if="isLoading" class="muted-text">Loading...</div>
       <div v-else-if="playlists.length === 0" class="muted-text">No playlists yet</div>
       <div v-else class="pl-list">
-        <div v-for="p in playlists" :key="p.id" class="pl-item-row">
-          <router-link :to="`/playlist/${p.id}`" class="pl-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-            <span>{{ p.name }}</span>
-          </router-link>
-          <button class="pl-delete" @click="confirmDeletePlaylist(p)" title="Delete playlist">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></svg>
-          </button>
-        </div>
+        <draggable v-model="localPlaylists" item-key="id" ghost-class="pl-ghost" :animation="200" @change="onReorderPlaylists" handle=".pl-drag-handle" class="pl-draggable">
+          <template #item="{ element: p }">
+            <div class="pl-item-row">
+              <span class="pl-drag-handle" title="Drag to reorder">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+              </span>
+              <router-link :to="`/playlist/${p.id}`" class="pl-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span class="pl-name">{{ p.name }}</span>
+                <span v-if="p.song_count !== undefined" class="pl-count">{{ p.song_count }}</span>
+              </router-link>
+              <button class="pl-delete" @click.stop="confirmDeletePlaylist(p)" title="Delete playlist">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></svg>
+              </button>
+            </div>
+          </template>
+        </draggable>
       </div>
     </div>
 
@@ -88,7 +96,7 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref, onUnmounted } from 'vue'
+import { onMounted, computed, ref, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLibraryStore } from '../stores/library.js'
 import { useFavoritesStore } from '../stores/favorites.js'
@@ -97,6 +105,7 @@ import ThemeToggle from './ThemeToggle.vue'
 import ModalDialog from './ModalDialog.vue'
 import CreatePlaylistModal from './CreatePlaylistModal.vue'
 import { storeToRefs } from 'pinia'
+import draggable from 'vuedraggable'
 
 const props = defineProps({ isOpen: Boolean })
 const emit = defineEmits(['toggle', 'resize'])
@@ -120,6 +129,14 @@ let startWidth = 0
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const playlistToDelete = ref(null)
+
+const localPlaylists = ref([])
+watch(playlists, (val) => { localPlaylists.value = [...val] }, { immediate: true })
+
+async function onReorderPlaylists() {
+  const ids = localPlaylists.value.map(p => p.id)
+  await library.reorderPlaylists(ids)
+}
 
 function startResize(e) {
   isResizing = true
@@ -253,7 +270,7 @@ async function handleDeletePlaylist() {
 
 .playlists { flex: 1; overflow-y: auto; min-height: 0; }
 .pl-header {
-  display: flex; align-items: center; justify-content: space-between; padding: 0 12px; margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 8px; margin-bottom: 4px;
   font-size: 10px; font-weight: var(--font-bold); text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-muted);
 }
 .add-btn {
@@ -267,6 +284,7 @@ async function handleDeletePlaylist() {
 .muted-text { padding: 0 12px; font-size: 11px; color: var(--color-text-muted); }
 
 .pl-list { display: flex; flex-direction: column; gap: 2px; }
+.pl-draggable { display: contents; }
 .pl-item-row {
   display: flex;
   align-items: center;
@@ -275,6 +293,16 @@ async function handleDeletePlaylist() {
 .pl-item-row:hover .pl-delete {
   opacity: 1;
 }
+.pl-drag-handle {
+  background: none; border: none; cursor: grab; width: 16px; height: 20px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted); opacity: 0; transition: all var(--transition-fast);
+  border-radius: 4px;
+}
+.pl-drag-handle svg { width: 10px; height: 10px; }
+.pl-item-row:hover .pl-drag-handle { opacity: 1; }
+.pl-drag-handle:active { cursor: grabbing; color: var(--color-primary); }
+.pl-ghost { opacity: 0.3; background: var(--color-surface-hover); border-radius: 6px; }
 .pl-delete {
   background: none; border: none; cursor: pointer;
   width: 20px; height: 20px; flex-shrink: 0;
@@ -289,11 +317,17 @@ async function handleDeletePlaylist() {
 .pl-item {
   display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; font-weight: var(--font-medium);
   color: var(--color-text-secondary); text-decoration: none; border-radius: 6px; transition: all 0.15s ease;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; min-width: 0;
 }
 .pl-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
 .pl-item:hover { color: var(--color-text); background: var(--color-surface-hover); }
 .pl-item:hover svg { opacity: 1; color: var(--color-primary); }
+.pl-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pl-count {
+  flex-shrink: 0; font-size: 10px; font-weight: var(--font-bold); padding: 1px 6px; border-radius: 100px;
+  background: rgba(99, 102, 241, 0.1); color: var(--color-primary);
+  font-family: var(--font-mono); min-width: 18px; text-align: center;
+}
 
 .sidebar-foot {
   padding-top: 10px; border-top: 1px solid var(--color-border); margin-top: auto;
@@ -305,11 +339,18 @@ async function handleDeletePlaylist() {
 }
 .foot-btn svg { width: 16px; height: 16px; }
 .foot-btn:hover { color: var(--color-primary); background: rgba(249,115,22,0.08); }
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .sidebar {
     width: 280px !important;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
   }
-  
+
+  .resize-handle {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
   .resize-handle {
     display: none;
   }

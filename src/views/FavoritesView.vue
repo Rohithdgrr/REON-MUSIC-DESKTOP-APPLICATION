@@ -145,14 +145,20 @@
         <span class="header-col-dur">Duration</span>
       </div>
       <div class="favorites-list glass-panel">
-        <TrackCard
-          v-for="(song, idx) in filteredSongs"
-          :key="song.videoId"
-          :index="idx + 1"
-          :track="song"
-          @play="playSong"
-          class="favorite-track-card"
-        />
+        <RecycleScroller
+          :items="filteredSongs"
+          :item-size="72"
+          key-field="videoId"
+          class="scroller"
+          v-slot="{ item, index }"
+        >
+          <TrackCard
+            :index="index + 1"
+            :track="item"
+            @play="playSong"
+            class="favorite-track-card"
+          />
+        </RecycleScroller>
       </div>
     </div>
   </div>
@@ -309,8 +315,8 @@ function goToSearch() {
 }
 
 .header-icon-glass {
-  width: 120px;
-  height: 120px;
+  width: 72px;
+  height: 72px;
   border-radius: var(--radius-lg);
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
   display: flex;
@@ -346,8 +352,8 @@ function goToSearch() {
 }
 
 .header-icon-glass svg {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   color: white;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
 }
@@ -895,9 +901,11 @@ function goToSearch() {
 }
 
 .favorites-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  min-height: 200px;
+}
+
+.favorites-list .scroller {
+  height: calc(100vh - 380px);
 }
 
 .favorite-track-card {
@@ -920,13 +928,13 @@ function goToSearch() {
   }
 
   .header-icon-glass {
-    width: 90px;
-    height: 90px;
+    width: 60px;
+    height: 60px;
   }
 
   .header-icon-glass svg {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
   }
 
   .page-title {
@@ -963,5 +971,24 @@ function goToSearch() {
   .list-headers {
     display: none;
   }
+}
+
+@media (max-width: 480px) {
+  .favorites-view { padding: 0 4px; }
+  .view-header { padding: 20px; border-radius: 16px; gap: 16px; }
+  .header-content { gap: 12px; }
+  .header-icon-glass { width: 52px; height: 52px; }
+  .header-icon-glass svg { width: 24px; height: 24px; }
+  .page-title { font-size: 1.7rem; letter-spacing: -0.5px; }
+  .subtitle { font-size: 12px; }
+  .header-actions { flex-direction: column; }
+  .play-all-btn, .shuffle-btn { width: 100%; padding: 12px; }
+  .filter-strip { gap: 8px; }
+  .search-input { font-size: 14px; }
+  .sort-select { font-size: 12px; }
+}
+
+@media (min-width: 1700px) {
+  .favorites-view { max-width: 1400px; margin: 0 auto; }
 }
 </style>

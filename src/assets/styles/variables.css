@@ -90,6 +90,15 @@
   /* Layout */
   --sidebar-width: 240px;
   --player-sidebar-width: 300px;
+
+  /* Breakpoints (referenced by useBreakpoint.js and component CSS) */
+  --bp-xs: 480px;   /* small / shrunk window */
+  --bp-sm: 600px;   /* narrow phone-class */
+  --bp-md: 768px;   /* tablet portrait */
+  --bp-lg: 900px;   /* tablet landscape / small desktop */
+  --bp-xl: 1099px;  /* standard desktop */
+  --bp-2xl: 1400px; /* large desktop */
+  --bp-3xl: 1700px; /* ultrawide */
   
   /* Border Radius */
   --radius-xs: 4px;

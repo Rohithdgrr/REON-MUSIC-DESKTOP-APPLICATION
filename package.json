@@ -25,6 +25,7 @@
     "steno": "^4.0.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.0",
+    "vue-virtual-scroller": "^2.0.0-beta.8",
     "vuedraggable": "^4.1.0",
     "youtubei.js": "^17.0.1"
   },

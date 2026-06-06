@@ -106,6 +106,11 @@
         </button>
       </div>
       <span class="filter-count" v-if="filterQuery">{{ filteredSongs.length }} of {{ songs.length }}</span>
+      <button class="scroll-to-current" @click="scrollToCurrent" title="Scroll to current track">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </button>
     </div>
 
     <div v-if="songs.length > 0" class="track-list">
@@ -310,6 +315,11 @@ async function handleDeletePlaylist() {
 
 function goToSearch() {
   router.push('/search')
+}
+
+function scrollToCurrent() {
+  const el = document.querySelector('.track-card.playing')
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 </script>
 
@@ -712,6 +722,15 @@ function goToSearch() {
   white-space: nowrap;
 }
 
+.scroll-to-current {
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text-muted); display: flex; align-items: center;
+  padding: 4px 6px; border-radius: 6px; transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.scroll-to-current svg { width: 16px; height: 16px; }
+.scroll-to-current:hover { background: var(--color-surface-hover); color: var(--color-primary); }
+
 .track-list .track-card {
   margin: 0;
 }
@@ -843,5 +862,39 @@ function goToSearch() {
 .browse-btn:hover {
   background: var(--color-primary-dark);
   transform: scale(1.05);
+}
+
+/* === Responsive === */
+@media (max-width: 900px) {
+  .playlist-icon { width: 130px; height: 130px; }
+  .playlist-icon svg { width: 44px; height: 44px; }
+  .playlist-name { font-size: 32px; }
+  .list-headers { grid-template-columns: 32px 56px 1fr 140px 60px; padding: 8px 16px; }
+  .header-artist { display: none; }
+}
+
+@media (max-width: 768px) {
+  .playlist-icon { width: 110px; height: 110px; }
+  .playlist-icon svg { width: 40px; height: 40px; }
+  .playlist-name { font-size: 28px; }
+  .playlist-toolbar { flex-wrap: wrap; gap: 8px; }
+  .playlist-search { flex: 1; min-width: 0; }
+}
+
+@media (max-width: 480px) {
+  .playlist-view { padding: 0 4px; }
+  .playlist-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .playlist-icon { width: 96px; height: 96px; }
+  .playlist-icon svg { width: 36px; height: 36px; }
+  .playlist-name { font-size: 24px; }
+  .playlist-actions { width: 100%; flex-wrap: wrap; }
+  .action-btn { flex: 1; justify-content: center; }
+  .playlist-meta-row { font-size: 12px; }
+  .list-headers { display: none; }
+  .track-row { padding: 4px 6px; }
+}
+
+@media (min-width: 1700px) {
+  .playlist-view { max-width: 1400px; }
 }
 </style>

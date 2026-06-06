@@ -30,25 +30,21 @@
       <!-- All Songs -->
       <div v-if="activeTab === 'songs'" class="section">
         <div class="section-header">
-          <h2 class="section-title">All Songs</h2>
           <span class="count">{{ library.songs.length }} songs</span>
         </div>
         <div v-if="library.songs.length === 0" class="empty-text">
           No saved songs yet. Start listening to build your library!
         </div>
-        <div v-else class="track-list">
-          <TrackCard
-            v-for="song in library.songs"
-            :key="song.id"
-            :track="{
-              videoId: song.video_id,
-              title: song.title,
-              artist: song.artist,
-              thumbnail: song.thumbnail_url,
-              duration: song.duration_seconds
-            }"
-            @play="handlePlay"
-          />
+        <div v-else class="track-list-scrollable">
+          <RecycleScroller
+            :items="library.songs"
+            :item-size="72"
+            key-field="id"
+            class="scroller"
+            v-slot="{ item }"
+          >
+            <TrackCard :track="normalizeSong(item)" @play="handlePlay" />
+          </RecycleScroller>
         </div>
       </div>
 
@@ -61,21 +57,20 @@
         <div v-if="topSongs.length === 0" class="empty-text">
           No listening data yet. Play some songs to see your top tracks!
         </div>
-        <div v-else class="track-list">
-          <div v-for="(song, index) in topSongs" :key="song.id" class="track-row">
-            <span class="track-rank">{{ index + 1 }}</span>
-            <TrackCard
-              :track="{
-                videoId: song.video_id,
-                title: song.title,
-                artist: song.artist,
-                thumbnail: song.thumbnail_url,
-                duration: song.duration_seconds
-              }"
-              @play="handlePlay"
-            />
-            <span class="play-count">{{ song.playCount }} plays</span>
-          </div>
+        <div v-else class="track-list-scrollable">
+          <RecycleScroller
+            :items="topSongs"
+            :item-size="72"
+            key-field="id"
+            class="scroller"
+            v-slot="{ item, index }"
+          >
+            <div class="track-row">
+              <span class="track-rank">{{ index + 1 }}</span>
+              <TrackCard :track="normalizeSong(item)" @play="handlePlay" />
+              <span class="play-count">{{ item.playCount }} plays</span>
+            </div>
+          </RecycleScroller>
         </div>
       </div>
 
@@ -121,20 +116,19 @@
         <div v-if="library.history.length === 0" class="empty-text">
           No listening history yet. Start playing songs to see them here!
         </div>
-        <div v-else class="track-list">
-          <div v-for="item in library.history" :key="item.id" class="track-row">
-            <TrackCard
-              :track="{
-                videoId: item.video_id,
-                title: item.title,
-                artist: item.artist,
-                thumbnail: item.thumbnail_url,
-                duration: item.duration_seconds
-              }"
-              @play="handlePlay"
-            />
-            <span class="played-time">{{ formatTime(item.played_at) }}</span>
-          </div>
+        <div v-else class="track-list-scrollable">
+          <RecycleScroller
+            :items="library.history"
+            :item-size="72"
+            key-field="id"
+            class="scroller"
+            v-slot="{ item }"
+          >
+            <div class="track-row">
+              <TrackCard :track="normalizeSong(item)" @play="handlePlay" />
+              <span class="played-time">{{ formatTime(item.played_at) }}</span>
+            </div>
+          </RecycleScroller>
         </div>
       </div>
 
@@ -355,6 +349,16 @@ const smartPlaylistsStore = useSmartPlaylistsStore()
 const activeTab = ref('songs')
 const topSongs = ref([])
 const topArtists = ref([])
+
+function normalizeSong(s) {
+  return {
+    videoId: s.video_id || s.videoId,
+    title: s.title,
+    artist: s.artist,
+    thumbnail: s.thumbnail_url || s.thumbnail,
+    duration: s.duration_seconds || s.duration
+  }
+}
 const showCreatePlaylistModal = ref(false)
 
 const tabs = [
@@ -518,7 +522,20 @@ function getSmartIcon(rule) {
   gap: 8px;
   margin-bottom: 32px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 12px, black calc(100% - 32px), transparent 100%);
+}
+
+.filter-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.filter-tabs > * {
+  scroll-snap-align: start;
 }
 
 .filter-tab {
@@ -563,6 +580,7 @@ function getSmartIcon(rule) {
   align-items: center;
   gap: 16px;
   margin-bottom: 16px;
+  min-height: 32px;
 }
 
 .section-title {
@@ -575,6 +593,8 @@ function getSmartIcon(rule) {
 .count {
   font-size: 14px;
   color: var(--color-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .clear-btn,
@@ -622,6 +642,19 @@ function getSmartIcon(rule) {
   border-radius: 16px;
   padding: 8px;
   border: 1px solid var(--color-border);
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
+
+.track-list-scrollable {
+  background: var(--color-surface);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  min-height: 200px;
+}
+
+.track-list-scrollable .scroller {
+  height: calc(100vh - 280px);
 }
 
 .track-list .track-card {
@@ -834,19 +867,37 @@ function getSmartIcon(rule) {
   .filter-tabs {
     gap: 6px;
   }
-  
+
   .filter-tab {
     padding: 8px 16px;
     font-size: 13px;
   }
-  
+
   .artist-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
+
   .playlist-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
+}
+
+@media (max-width: 480px) {
+  .page-title { font-size: 1.8rem; }
+  .page-subtitle { font-size: 12px; }
+  .filter-tab { padding: 7px 12px; font-size: 12px; gap: 6px; }
+  .filter-tab span { display: inline; }
+  .section-header { flex-wrap: wrap; gap: 8px; }
+  .count { font-size: 12px; }
+  .artist-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .playlist-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1700px) {
+  .library-view { max-width: 1600px; margin: 0 auto; }
+  .playlist-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .artist-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 }
 
 .stats-dashboard {

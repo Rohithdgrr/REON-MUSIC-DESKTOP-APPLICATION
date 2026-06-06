@@ -34,6 +34,11 @@
       <span>{{ totalDurationLong }} total</span>
       <span>•</span>
       <span>{{ currentTrackPosition }} of {{ queueCount }} playing</span>
+      <button class="scroll-to-current" @click="scrollToCurrent" title="Scroll to current track">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </button>
     </div>
 
     <div v-if="queueCount === 0" class="empty-queue">
@@ -62,61 +67,9 @@
         </div>
         <div class="queue-item current">
           <div class="item-thumbnail">
-            <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" alt="">
-            <div v-else class="thumbnail-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-            </div>
-            <div class="playing-indicator">
-              <div class="bar"></div>
-              <div class="bar"></div>
-              <div class="bar"></div>
-            </div>
-          </div>
-          <div class="item-info">
-            <div class="item-title">{{ track.title }}</div>
-            <div class="item-artist">{{ track.artist }}</div>
-            <div class="mini-progress" v-if="player.progressPercent > 0">
-              <div class="mini-progress-fill" :style="{ width: player.progressPercent + '%' }"></div>
-            </div>
-          </div>
-          <div class="item-duration">{{ formatDuration(track.duration) }}</div>
-        </div>
-      </div>
+<img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" alt="" loading="lazy" decoding="async">
 
-      <div class="next-up-section" v-if="upcomingSongs.length > 0">
-        <div class="section-label">Next Up <span class="count-pill">{{ upcomingSongs.length }}</span></div>
-        <draggable
-          v-model="upcomingSongs"
-          @end="onReorder"
-          item-key="videoId"
-          class="draggable-list"
-          handle=".drag-handle"
-          role="listbox"
-          :aria-label="`Up next: ${upcomingSongs.length} songs`"
-        >
-          <template #item="{ element, index }">
-            <div
-              class="queue-item"
-              :class="{ playing: isPlaying(index) }"
-              role="option"
-              :aria-selected="isPlaying(index)"
-              :tabindex="0"
-              @keydown="onItemKeydown($event, element, index)"
-              @focus="focusedIndex = index"
-              @blur="focusedIndex = -1"
-              :data-focused="focusedIndex === index"
-            >
-              <div class="drag-handle" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/>
-                  <circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
-                </svg>
-              </div>
-              <div class="item-thumbnail" @click="playQueueItem(element)" :aria-label="`Play ${element.title}`">
-                <img v-if="element.thumbnail && !brokenImages.has(element.thumbnail)" :src="element.thumbnail" @error="handleImageError(element.thumbnail)" alt="">
-                <div v-else class="thumbnail-placeholder">
+           <div v-else class="thumbnail-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
                   </svg>
@@ -150,11 +103,9 @@
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
-              </div>
-              <div class="item-duration">{{ formatDuration(element.duration) }}</div>
             </div>
-          </template>
-        </draggable>
+          <div class="item-duration">{{ formatDuration(track.duration) }}</div>
+        </div>
       </div>
 
       <div class="history-section" v-if="library.history && library.history.length > 0">
@@ -173,7 +124,7 @@
               class="history-item"
             >
               <div class="item-thumbnail small">
-                <img v-if="(item.thumbnail_url || item.thumbnail) && !brokenImages.has(item.thumbnail_url || item.thumbnail)" :src="item.thumbnail_url || item.thumbnail" @error="handleImageError(item.thumbnail_url || item.thumbnail)" alt="">
+                <img v-if="(item.thumbnail_url || item.thumbnail) && !brokenImages.has(item.thumbnail_url || item.thumbnail)" :src="item.thumbnail_url || item.thumbnail" @error="handleImageError(item.thumbnail_url || item.thumbnail)" alt="" loading="lazy" decoding="async">
                 <div v-else class="thumbnail-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                 </div>
@@ -272,6 +223,11 @@ function isPlaying(index) {
 
 function onReorder() {
   // Reordering is handled by the computed setter
+}
+
+function scrollToCurrent() {
+  const el = document.querySelector('.queue-item.current')
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 function onItemKeydown(e, item, index) {
@@ -491,6 +447,14 @@ onUnmounted(() => {
   color: var(--color-primary);
   font-weight: 700;
 }
+
+.scroll-to-current {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--color-text-muted); display: flex; align-items: center;
+  padding: 2px 6px; border-radius: 6px; transition: all var(--transition-fast);
+}
+.scroll-to-current svg { width: 16px; height: 16px; }
+.scroll-to-current:hover { background: var(--color-surface-hover); color: var(--color-primary); }
 
 .queue-list {
   flex: 1;
@@ -1048,7 +1012,7 @@ onUnmounted(() => {
   max-height: 600px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .queue-panel {
     width: 100% !important;
     transform: translateX(100%);
@@ -1059,6 +1023,12 @@ onUnmounted(() => {
     transform: translateX(0);
   }
 
+  .resize-handle {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
   .resize-handle {
     display: none;
   }

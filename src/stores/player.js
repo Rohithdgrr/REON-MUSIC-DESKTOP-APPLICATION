@@ -23,6 +23,7 @@ export const usePlayerStore = defineStore('player', () => {
   let urlCache = new Map()
   let retryCount = 0
   const MAX_RETRIES = 3
+  let pendingSeek = null
 
   // Apply saved settings to audio manager
   function applyAudioSettings() {
@@ -39,6 +40,50 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
   applyAudioSettings()
+
+  // Persist playback position on page unload
+  function savePlaybackState() {
+    if (currentTrack.value) {
+      try {
+        localStorage.setItem('musicReonPlayback', JSON.stringify({
+          track: currentTrack.value,
+          position: currentTime.value,
+          queue: queue.value.slice(0, 50),
+          index: currentIndex.value,
+          timestamp: Date.now()
+        }))
+      } catch (e) {
+        // ignore quota errors
+      }
+    }
+  }
+
+  function restorePlaybackState() {
+    try {
+      const saved = localStorage.getItem('musicReonPlayback')
+      if (saved) {
+        const state = JSON.parse(saved)
+        if (state.track && state.track.videoId) {
+          const elapsed = (Date.now() - (state.timestamp || 0)) / 1000
+          const seekPosition = Math.max(0, (state.position || 0) + elapsed)
+          currentTrack.value = state.track
+          currentTime.value = seekPosition
+          pendingSeek = seekPosition
+          if (state.queue && state.queue.length > 0) {
+            queue.value = state.queue
+            currentIndex.value = state.index >= 0 ? state.index : 0
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    restorePlaybackState()
+    window.addEventListener('beforeunload', savePlaybackState)
+  }
 
   // Getters
   const hasNext = computed(() => {
@@ -61,6 +106,12 @@ export const usePlayerStore = defineStore('player', () => {
     isLoading.value = false
     duration.value = dur
     retryCount = 0
+    if (pendingSeek !== null && pendingSeek > 0 && dur > 0) {
+      const pos = Math.min(pendingSeek, dur - 1)
+      audioManager.seek(pos)
+      currentTime.value = pos
+      pendingSeek = null
+    }
     console.log('Audio loaded successfully, duration:', dur)
   })
 
@@ -318,6 +369,34 @@ export const usePlayerStore = defineStore('player', () => {
     } else if (repeatMode.value === 'all' || hasNext.value) {
       playNext()
     } else {
+      autoPlaySimilar()
+    }
+  }
+
+  async function autoPlaySimilar() {
+    try {
+      const { useLibraryStore } = await import('../stores/library.js')
+      const library = useLibraryStore()
+      if (library.history.length > 1) {
+        const recent = library.history.filter(h => (h.video_id || h.videoId) !== currentTrack.value?.videoId)
+        if (recent.length > 0) {
+          const pick = recent[Math.floor(Math.random() * recent.length)]
+          const track = {
+            videoId: pick.video_id || pick.videoId,
+            title: pick.title,
+            artist: pick.artist,
+            thumbnail: pick.thumbnail_url || pick.thumbnail,
+            duration: pick.duration_seconds || pick.duration
+          }
+          queue.value = [track]
+          currentIndex.value = 0
+          await playTrack(track)
+          return
+        }
+      }
+      isPlaying.value = false
+      currentTime.value = 0
+    } catch (e) {
       isPlaying.value = false
       currentTime.value = 0
     }

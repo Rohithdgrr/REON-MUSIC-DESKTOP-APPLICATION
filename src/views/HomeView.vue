@@ -50,7 +50,7 @@
               :class="{ selected: selectedResultIndex === index }"
               @click="selectResult(result)"
             >
-              <img v-if="result.thumbnail && !brokenImages.has(result.thumbnail)" :src="result.thumbnail" @error="handleImageError(result.thumbnail)" class="result-thumb" alt="" />
+              <img v-if="result.thumbnail && !brokenImages.has(result.thumbnail)" :src="result.thumbnail" @error="handleImageError(result.thumbnail)" class="result-thumb" alt="" loading="lazy" decoding="async" />
               <div v-else class="result-thumb result-thumb-empty">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
@@ -121,7 +121,7 @@
       </div>
       <div class="quick-picks-grid">
         <div v-for="track in quickPicks" :key="'quick-'+track.videoId" class="quick-pick-card glass-panel animate-on-hover" @click="handlePlay(track)">
-          <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="quick-pick-thumb" alt="" />
+          <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="quick-pick-thumb" alt="" loading="lazy" decoding="async" />
           <div v-else class="quick-pick-thumb quick-pick-thumb-empty">
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
@@ -304,7 +304,7 @@
         <div class="scroll-row">
           <div v-for="cat in curatedCategories" :key="'cat-card-'+cat.id" class="big-card glass-panel" @click="searchCategory(cat)">
             <div class="big-card-cover" :style="{ background: cat.gradient }">
-              <img v-if="cat.thumbnail && !brokenImages.has(cat.thumbnail)" :src="cat.thumbnail" @error="handleImageError(cat.thumbnail)" class="cover-thumb" alt="" />
+              <img v-if="cat.thumbnail && !brokenImages.has(cat.thumbnail)" :src="cat.thumbnail" @error="handleImageError(cat.thumbnail)" class="cover-thumb" alt="" loading="lazy" decoding="async" />
               <div class="cover-overlay"></div>
               <svg v-if="!cat.thumbnail || brokenImages.has(cat.thumbnail)" class="cover-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
               <div class="card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -337,7 +337,7 @@
         <div class="scroll-row">
           <div v-for="track in bestTracks" :key="'chart-'+track.id" class="big-card glass-panel" @click="searchCategory(track)">
             <div class="big-card-cover" :style="{ background: track.gradient }">
-              <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="cover-thumb" alt="" />
+              <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="cover-thumb" alt="" loading="lazy" decoding="async" />
               <div class="cover-overlay"></div>
               <svg v-if="!track.thumbnail || brokenImages.has(track.thumbnail)" class="cover-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
               <div class="card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -369,7 +369,7 @@
         <div class="scroll-row">
           <div v-for="gchart in globalCharts" :key="'gchart-'+gchart.id" class="big-card glass-panel" @click="searchCategory(gchart)">
             <div class="big-card-cover" :style="{ background: gchart.gradient }">
-              <img v-if="gchart.thumbnail && !brokenImages.has(gchart.thumbnail)" :src="gchart.thumbnail" @error="handleImageError(gchart.thumbnail)" class="cover-thumb" alt="" />
+              <img v-if="gchart.thumbnail && !brokenImages.has(gchart.thumbnail)" :src="gchart.thumbnail" @error="handleImageError(gchart.thumbnail)" class="cover-thumb" alt="" loading="lazy" decoding="async" />
               <div class="cover-overlay"></div>
               <svg v-if="!gchart.thumbnail || brokenImages.has(gchart.thumbnail)" class="cover-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
               <div class="card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -401,7 +401,7 @@
         <div class="scroll-row">
           <div v-for="album in featuredAlbums" :key="'album-'+album.id" class="big-card glass-panel" @click="searchCategory(album)">
             <div class="big-card-cover" :style="{ background: album.gradient }">
-              <img v-if="album.thumbnail && !brokenImages.has(album.thumbnail)" :src="album.thumbnail" @error="handleImageError(album.thumbnail)" class="cover-thumb" alt="" />
+              <img v-if="album.thumbnail && !brokenImages.has(album.thumbnail)" :src="album.thumbnail" @error="handleImageError(album.thumbnail)" class="cover-thumb" alt="" loading="lazy" decoding="async" />
               <div class="cover-overlay"></div>
               <svg v-if="!album.thumbnail || brokenImages.has(album.thumbnail)" class="cover-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
               <div class="card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -432,7 +432,7 @@
         <div class="artists-tray">
           <div v-for="artist in featuredArtists" :key="'art-'+artist.id" class="artist-circle-card" @click="searchCategory(artist)">
             <div class="artist-avatar-wrapper">
-              <img v-if="artist.thumbnail && !brokenImages.has(artist.thumbnail)" :src="artist.thumbnail" @error="handleImageError(artist.thumbnail)" class="artist-avatar" alt="" />
+              <img v-if="artist.thumbnail && !brokenImages.has(artist.thumbnail)" :src="artist.thumbnail" @error="handleImageError(artist.thumbnail)" class="artist-avatar" alt="" loading="lazy" decoding="async" />
               <div v-else class="artist-avatar-empty" :style="{ background: artist.gradient }">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
@@ -465,7 +465,7 @@
         <div class="scroll-row">
           <div v-for="retro in nostalgiaHits" :key="'retro-'+retro.id" class="big-card glass-panel" @click="searchCategory(retro)">
             <div class="big-card-cover" :style="{ background: retro.gradient }">
-              <img v-if="retro.thumbnail && !brokenImages.has(retro.thumbnail)" :src="retro.thumbnail" @error="handleImageError(retro.thumbnail)" class="cover-thumb" alt="" />
+              <img v-if="retro.thumbnail && !brokenImages.has(retro.thumbnail)" :src="retro.thumbnail" @error="handleImageError(retro.thumbnail)" class="cover-thumb" alt="" loading="lazy" decoding="async" />
               <div class="cover-overlay"></div>
               <svg v-if="!retro.thumbnail || brokenImages.has(retro.thumbnail)" class="cover-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
               <div class="card-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
@@ -996,7 +996,9 @@ function handleSearchBlur() {
 /* Search bar */
 .header-search-container {
   position: relative;
-  width: 320px;
+  width: clamp(200px, 30%, 400px);
+  flex-shrink: 1;
+  min-width: 0;
 }
 .header-search {
   display: flex;
@@ -1749,6 +1751,43 @@ function handleSearchBlur() {
   .hero-title {
     font-size: 2.2rem;
   }
+  .stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-header { flex-direction: column; align-items: stretch; gap: 12px; }
+  .header-search-container { width: 100%; }
+}
+
+/* === Responsive additions === */
+@media (max-width: 480px) {
+  .page-title { font-size: 1.8rem; letter-spacing: -0.5px; }
+  .page-sub { font-size: 10px; }
+  .hero-banner { padding: 24px; border-radius: 16px; }
+  .hero-title { font-size: 1.6rem; }
+  .hero-subtitle { font-size: 12px; }
+  .hero-actions { flex-direction: column; gap: 10px; }
+  .hero-play-btn, .hero-outline-btn { width: 100%; justify-content: center; }
+  .stats-strip { gap: 8px; }
+  .stat-tile { padding: 10px 12px; }
+  .stat-value { font-size: 1rem; }
+  .stat-label { font-size: 0.6rem; }
+  .section-title-grp h3 { font-size: 14px; }
+}
+
+@media (max-width: 380px) {
+  .home { padding: 0 4px; }
+  .hero-banner { padding: 18px; }
+  .hero-title { font-size: 1.4rem; }
+  .stat-value { font-size: 0.9rem; }
+  .stat-label { font-size: 0.55rem; }
+}
+
+@media (min-width: 1400px) {
+  .trending-grid { grid-template-columns: repeat(3, 1fr); }
+  .home { max-width: 1600px; margin: 0 auto; }
+}
+
+@media (min-width: 1700px) {
+  .trending-grid { grid-template-columns: repeat(4, 1fr); }
+  .home { max-width: 1700px; }
 }
 
 /* Quick Picks / Recently Played Grid */

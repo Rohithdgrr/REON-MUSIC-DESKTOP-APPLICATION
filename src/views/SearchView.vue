@@ -67,16 +67,34 @@
           </div>
         </div>
 
+        <!-- Batch action bar -->
+        <Transition name="fade">
+          <div v-if="selectedTracks.size > 0" class="batch-bar">
+            <span class="batch-count">{{ selectedTracks.size }} selected</span>
+            <button class="batch-btn" @click="batchAddToQueue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add to Queue
+            </button>
+            <button class="batch-btn secondary" @click="clearSelection">Clear</button>
+          </div>
+        </Transition>
+
         <!-- Track results -->
         <div class="track-list">
-          <div class="track-list-inner">
+          <RecycleScroller
+            :items="filteredResults"
+            :item-size="72"
+            key-field="videoId"
+            class="track-list-inner"
+            v-slot="{ item }"
+          >
             <TrackCard
-              v-for="track in filteredResults"
-              :key="track.videoId"
-              :track="track"
+              :track="item"
+              :selected="selectedTracks.has(item.videoId)"
               @play="handlePlay"
+              @select="toggleSelect"
             />
-          </div>
+          </RecycleScroller>
         </div>
 
         <!-- Load More -->
@@ -152,6 +170,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSearchStore } from '../stores/search.js'
 import { usePlayerStore } from '../stores/player.js'
 import TrackCard from '../components/TrackCard.vue'
+import { useNotifications } from '../composables/useNotifications.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,6 +181,30 @@ const query = ref('')
 const isFocused = ref(false)
 const searchInput = ref(null)
 const historyLimit = ref(20)
+const selectedTracks = ref(new Map())
+
+function toggleSelect(track) {
+  if (selectedTracks.value.has(track.videoId)) {
+    selectedTracks.value.delete(track.videoId)
+  } else {
+    selectedTracks.value.set(track.videoId, track)
+  }
+  selectedTracks.value = new Map(selectedTracks.value)
+}
+
+function batchAddToQueue() {
+  const tracks = [...selectedTracks.value.values()]
+  if (tracks.length > 0) {
+    tracks.forEach(t => playerStore.addToQueue(t))
+    const { showNotification } = useNotifications()
+    showNotification({ title: 'Added to Queue', message: `${tracks.length} tracks added`, type: 'success' })
+    selectedTracks.value = new Map()
+  }
+}
+
+function clearSelection() {
+  selectedTracks.value = new Map()
+}
 
 const trending = [
   'Trending songs 2024',
@@ -511,19 +554,36 @@ function searchArtist(name) {
 .track-list {
   background: var(--color-surface);
   border-radius: 16px;
-  padding: 8px;
   border: 1px solid var(--color-border);
+  min-height: 200px;
 }
 
 .track-list-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  height: calc(100vh - 320px);
 }
 
 .track-card {
   margin: 0;
 }
+
+.batch-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.batch-count { font-size: 13px; font-weight: 600; margin-right: auto; }
+.batch-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.3); background: transparent; color: white; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.batch-btn svg { width: 14px; height: 14px; }
+.batch-btn:hover { background: rgba(255,255,255,0.15); }
+.batch-btn.secondary { border-color: transparent; opacity: 0.8; }
+.batch-btn.secondary:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
 .load-more-row {
   display: flex;
@@ -718,5 +778,34 @@ function searchArtist(name) {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* === Responsive === */
+@media (max-width: 480px) {
+  .page-title { font-size: 20px; }
+  .page-sub { font-size: 11px; letter-spacing: 0.4px; }
+  .search-box-row { flex-direction: column; gap: 8px; }
+  .search-btn { width: 100%; padding: 12px 20px; }
+  .results-header { flex-direction: column; gap: 12px; align-items: stretch; }
+  .play-all-btn { width: 100%; justify-content: center; }
+  .batch-bar { flex-wrap: wrap; gap: 8px; }
+  .batch-btn { flex: 1; }
+}
+
+@media (max-width: 600px) {
+  .search-view { padding: 0; }
+  .page-header { margin-bottom: 18px; padding-bottom: 12px; }
+}
+
+@media (max-width: 900px) {
+  .search-box-row { flex-wrap: wrap; }
+  .search-btn { padding: 12px 18px; }
+}
+
+@media (min-width: 1700px) {
+  .search-view {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
 }
 </style>

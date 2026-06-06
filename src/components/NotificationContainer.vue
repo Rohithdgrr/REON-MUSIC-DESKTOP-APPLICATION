@@ -132,4 +132,22 @@ const { notifications, removeNotification } = useNotifications()
   opacity: 0;
   transform: translateX(40px);
 }
+
+@media (max-width: 600px) {
+  .notification-container {
+    top: auto;
+    bottom: 16px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    width: auto;
+  }
+  .notification { padding: 12px 14px; }
+  .notif-message { white-space: normal; }
+}
+
+@media (max-width: 380px) {
+  .notif-title { font-size: 12px; }
+  .notif-message { font-size: 11px; }
+}
 </style>

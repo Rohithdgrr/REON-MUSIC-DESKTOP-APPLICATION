@@ -76,14 +76,23 @@ export function registerSqliteIPC() {
     try {
       const db = getDb()
       await db.read()
-      
+
       // Ensure playlists array exists
       if (!db.data.playlists) {
         db.data.playlists = []
         await db.write()
       }
-      
-      const playlists = [...db.data.playlists].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      const playlistSongs = db.data.playlistSongs || []
+      const countByPlaylist = playlistSongs.reduce((acc, ps) => {
+        acc[ps.playlist_id] = (acc[ps.playlist_id] || 0) + 1
+        return acc
+      }, {})
+
+      const playlists = [...db.data.playlists]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .map(p => ({ ...p, song_count: countByPlaylist[p.id] || 0 }))
+
       return { success: true, data: playlists }
     } catch (err) {
       log.error('IPC sqlite:getPlaylists error:', err.message)
@@ -157,6 +166,7 @@ export function registerSqliteIPC() {
       
       if (data.name !== undefined) db.data.playlists[index].name = data.name
       if (data.description !== undefined) db.data.playlists[index].description = data.description
+      if (data.created_at !== undefined) db.data.playlists[index].created_at = data.created_at
       
       await db.write()
       return { success: true, data: db.data.playlists[index] }

@@ -57,13 +57,19 @@
       </div>
       
       <div class="results-list glass-panel">
-        <TrackCard
-          v-for="(track, idx) in results"
-          :key="track.videoId"
-          :index="idx + 1"
-          :track="track"
-          @play="handlePlay"
-        />
+        <RecycleScroller
+          :items="results"
+          :item-size="72"
+          key-field="videoId"
+          class="scroller"
+          v-slot="{ item, index }"
+        >
+          <TrackCard
+            :index="index + 1"
+            :track="item"
+            @play="handlePlay"
+          />
+        </RecycleScroller>
       </div>
 
       <div v-if="hasMore" class="load-more-section">
@@ -739,14 +745,21 @@ function goBack() {
   }
 }
 
+@media (max-width: 480px) {
+  .list-headers { display: none; }
+  .category-view { padding: 0 4px; }
+  .page-title { font-size: 1.7rem; }
+}
+
 .results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   background: var(--color-surface);
   border-radius: 16px;
-  padding: 8px;
   border: 1px solid var(--color-border);
+  min-height: 200px;
+}
+
+.results-list .scroller {
+  height: calc(100vh - 320px);
 }
 
 .results-list .track-card {

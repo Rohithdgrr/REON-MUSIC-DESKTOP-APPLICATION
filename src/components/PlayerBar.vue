@@ -54,6 +54,7 @@
               :class="{ spinning: isPlaying && artworkMode === 'vinyl' }"
               :key="track.thumbnail"
               alt=""
+              loading="lazy" decoding="async"
             />
             <div v-else class="artwork-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -108,10 +109,12 @@
 
         <div class="track-subline" style="--stagger: 2">
           <span>{{ isPlaying ? 'Playing now' : (isLoading ? 'Loading…' : 'Paused') }}</span>
-          <span>•</span>
-          <span>{{ currentTrackPosition }} / {{ queueCount }}</span>
-          <span>•</span>
-          <span>{{ upcomingSongs.length }} next</span>
+          <span v-if="queueCount > 0">•</span>
+          <span v-if="queueCount > 0">{{ currentTrackPosition }} / {{ queueCount }}</span>
+          <template v-if="upcomingSongs.length > 0">
+            <span>•</span>
+            <span>{{ upcomingSongs.length }} next</span>
+          </template>
         </div>
 
         <div class="mini-actions" style="--stagger: 3">
@@ -165,7 +168,7 @@
         <div v-if="upcomingSongs.length > 0" class="up-next-strip" style="--stagger: 5" @click="playQueueItem(upcomingSongs[0])">
           <span class="up-next-label">Up next</span>
           <div class="up-next-mini">
-            <img v-if="upcomingSongs[0].thumbnail && !brokenImages.has(upcomingSongs[0].thumbnail)" :src="upcomingSongs[0].thumbnail" @error="handleImageError(upcomingSongs[0].thumbnail)" class="up-next-thumb" alt="" />
+            <img v-if="upcomingSongs[0].thumbnail && !brokenImages.has(upcomingSongs[0].thumbnail)" :src="upcomingSongs[0].thumbnail" @error="handleImageError(upcomingSongs[0].thumbnail)" class="up-next-thumb" alt="" loading="lazy" decoding="async" />
             <div v-else class="up-next-thumb up-next-thumb-empty">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
             </div>
@@ -200,6 +203,7 @@
                   @error="handleImageError(item.thumbnail)"
                   class="recent-thumb"
                   alt=""
+                  loading="lazy" decoding="async"
                 />
                 <div v-else class="recent-thumb recent-thumb-empty">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -271,7 +275,7 @@
             <div class="bar"></div>
             <div class="bar"></div>
           </div>
-          <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="queue-thumb" alt="" />
+          <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" class="queue-thumb" alt="" loading="lazy" decoding="async" />
           <div v-else class="queue-thumb queue-thumb-empty">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
           </div>
@@ -323,7 +327,7 @@
                   </svg>
                 </div>
                 <div class="queue-thumb-wrap" @click="playQueueItem(element)" :aria-label="`Play ${element.title}`">
-                  <img v-if="element.thumbnail && !brokenImages.has(element.thumbnail)" :src="element.thumbnail" @error="handleImageError(element.thumbnail)" class="queue-thumb" alt="" />
+                  <img v-if="element.thumbnail && !brokenImages.has(element.thumbnail)" :src="element.thumbnail" @error="handleImageError(element.thumbnail)" class="queue-thumb" alt="" loading="lazy" decoding="async" />
                   <div v-else class="queue-thumb queue-thumb-empty">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
@@ -347,23 +351,12 @@
                   </div>
                 </div>
                 <div class="queue-actions-cell">
-                  <button
-                    class="action-icon-btn move-top"
-                    @click="moveToTop(index)"
-                    :disabled="index === 0"
-                    title="Move to top"
-                    aria-label="Move to top of queue"
-                  >
+                  <button class="action-icon-btn move-top" @click="moveToTop(index)" :disabled="index === 0" title="Move to top" aria-label="Move to top of queue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
                     </svg>
                   </button>
-                  <button
-                    class="action-icon-btn remove"
-                    @click="removeFromQueue(index)"
-                    title="Remove track"
-                    aria-label="Remove from queue"
-                  >
+                  <button class="action-icon-btn remove" @click="removeFromQueue(index)" title="Remove track" aria-label="Remove from queue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18"/>
                       <line x1="6" y1="6" x2="18" y2="18"/>
@@ -374,15 +367,6 @@
               </div>
             </template>
           </draggable>
-        </div>
-
-        <div v-if="queueCount === 0" class="empty-queue-inline">
-          <p>Queue is empty</p>
-          <button class="browse-btn-inline" @click="$router.push('/search')">Browse music</button>
-        </div>
-        <div v-else-if="upcomingSongs.length === 0" class="next-up-empty">
-          <p>End of queue</p>
-          <button class="browse-btn-inline" @click="$router.push('/search')">Add more</button>
         </div>
       </div>
     </div>
@@ -492,7 +476,7 @@
               <svg v-else-if="volume < 50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
               <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             </button>
-            <input type="range" min="0" max="100" v-model="volume" class="volume-slider-bar" :style="`--vol: ${volume}%`" @input="setVolume(parseInt(volume))" :aria-label="`Volume ${volume}%`" :title="`Volume ${volume}%`" />
+            <input type="range" min="0" max="100" :value="volume" class="volume-slider-bar" :style="`--vol: ${volume}%`" @input="setVolume(parseInt($event.target.value))" :aria-label="`Volume ${volume}%`" :title="`Volume ${volume}%`" />
             <div class="volume-readout" :class="{ 'is-muted': volume === 0 }">
               <span class="volume-num">{{ volume }}</span>
               <span class="volume-pct">%</span>
@@ -1442,7 +1426,7 @@ function playRecent(item) {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6px 0 0;
+  padding: 6px 0 18px;
   position: relative;
 }
 
@@ -3443,7 +3427,7 @@ input[type="range"]:focus-visible {
 }
 
 /* Mobile: full-width drawer */
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .player-sidebar {
     width: 100vw !important;
     max-width: 100vw !important;

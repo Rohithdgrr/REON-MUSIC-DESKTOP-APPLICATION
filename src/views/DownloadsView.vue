@@ -34,17 +34,22 @@
     </div>
 
     <div v-else class="downloads-list">
-      <div v-for="song in downloadedSongs" :key="song.id" class="download-item">
-        <TrackCard
-          :track="song"
-          @play="playSong"
-        />
-        <button class="remove-btn" @click="handleRemove(song)" title="Remove download">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-          </svg>
-        </button>
-      </div>
+      <RecycleScroller
+        :items="downloadedSongs"
+        :item-size="80"
+        key-field="id"
+        class="scroller"
+        v-slot="{ item }"
+      >
+        <div class="download-item">
+          <TrackCard :track="item" @play="playSong" />
+          <button class="remove-btn" @click="handleRemove(item)" title="Remove download">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </button>
+        </div>
+      </RecycleScroller>
     </div>
   </div>
 </template>
@@ -211,13 +216,15 @@ function goToSearch() {
 }
 
 .downloads-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   background: var(--color-surface);
   border-radius: 16px;
-  padding: 8px;
   border: 1px solid var(--color-border);
+  flex: 1;
+  min-height: 200px;
+}
+
+.downloads-list .scroller {
+  height: calc(100vh - 280px);
 }
 
 .downloads-list .track-card {
@@ -284,5 +291,13 @@ function goToSearch() {
   .header-info h1 {
     font-size: 2rem;
   }
+}
+
+@media (max-width: 480px) {
+  .view-header { padding: 20px; }
+  .header-icon { width: 52px; height: 52px; }
+  .header-icon svg { width: 26px; height: 26px; }
+  .header-info h1 { font-size: 1.7rem; }
+  .downloads-list .scroller { height: calc(100vh - 260px); }
 }
 </style>
