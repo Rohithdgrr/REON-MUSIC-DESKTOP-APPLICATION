@@ -147,17 +147,19 @@ onMounted(() => {
 .orb-1 {
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--color-orb-1) 0%, transparent 70%);
   top: -200px;
   right: -100px;
+  transition: background var(--transition-slow);
 }
 
 .orb-2 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--color-orb-2) 0%, transparent 70%);
   bottom: -200px;
   left: 200px;
+  transition: background var(--transition-slow);
 }
 
 .sidebar-toggle {

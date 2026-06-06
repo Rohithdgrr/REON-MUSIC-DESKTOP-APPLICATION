@@ -16,6 +16,7 @@ export const usePlayerStore = defineStore('player', () => {
   const repeatMode = ref('off') // 'off', 'all', 'one'
   const isShuffled = ref(false)
   const error = ref(null)
+  const queueItemMeta = ref(new Map())
 
   const audioManager = new AudioManager()
   let progressTimer = null
@@ -336,6 +337,36 @@ export const usePlayerStore = defineStore('player', () => {
     currentIndex.value = -1
   }
 
+  function setQueueWithMeta(tracks, startIndex = 0, meta = null) {
+    queue.value = [...tracks]
+    currentIndex.value = startIndex
+    queueItemMeta.value = new Map()
+    if (meta && typeof meta === 'object') {
+      for (const t of tracks) {
+        if (t?.videoId && meta[t.videoId]) {
+          queueItemMeta.value.set(t.videoId, meta[t.videoId])
+        }
+      }
+    }
+  }
+
+  function addToQueueWithMeta(track, itemMeta = null) {
+    queue.value.push(track)
+    if (track?.videoId && itemMeta) {
+      queueItemMeta.value.set(track.videoId, itemMeta)
+    }
+  }
+
+  function tagQueueItem(videoId, itemMeta) {
+    if (videoId && itemMeta) {
+      queueItemMeta.value.set(videoId, itemMeta)
+    }
+  }
+
+  function getItemMeta(videoId) {
+    return videoId ? queueItemMeta.value.get(videoId) || null : null
+  }
+
   function toggleShuffle() {
     isShuffled.value = !isShuffled.value
   }
@@ -402,6 +433,7 @@ export const usePlayerStore = defineStore('player', () => {
     repeatMode,
     isShuffled,
     error,
+    queueItemMeta,
     hasNext,
     hasPrevious,
     progressPercent,
@@ -413,6 +445,10 @@ export const usePlayerStore = defineStore('player', () => {
     playPrevious,
     setQueue,
     addToQueue,
+    setQueueWithMeta,
+    addToQueueWithMeta,
+    tagQueueItem,
+    getItemMeta,
     clearQueue,
     toggleShuffle,
     cycleRepeatMode,

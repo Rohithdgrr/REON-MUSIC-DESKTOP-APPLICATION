@@ -1,5 +1,8 @@
 <template>
   <div class="category-view">
+    <!-- Backsplash glowing orb -->
+    <div class="category-header-glow" :style="{ background: categoryGradient }"></div>
+
     <div class="category-header">
       <button class="back-btn" @click="goBack">
         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -7,14 +10,29 @@
         </svg>
       </button>
       <div class="category-info">
-        <div class="category-badge" :style="{ background: categoryGradient }">
+        <div class="category-badge animate-on-hover" :style="{ background: categoryGradient }" @click="playAll">
           <svg class="category-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
           </svg>
+          <div class="badge-play-overlay">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </div>
         </div>
-        <div>
+        <div class="category-meta-block">
+          <span class="playlist-pill">PLAYLIST</span>
           <h1 class="category-title">{{ categoryName }}</h1>
           <p class="category-description">{{ categoryDescription }}</p>
+          <div class="playlist-stats" v-if="results.length > 0">
+            <span class="stats-item">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="stats-icon"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+              {{ results.length }} songs
+            </span>
+            <span class="stats-dot"></span>
+            <button class="header-play-btn" @click="playAll">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="btn-play-svg"><path d="M8 5v14l11-7z"/></svg>
+              Play All
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -29,20 +47,20 @@
     </div>
 
     <div v-else-if="results.length > 0" class="results">
-      <div class="results-header">
-        <h2 class="section-title">{{ results.length }} songs</h2>
-        <button class="play-all-btn" @click="playAll">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-          Play All
-        </button>
+      <div class="list-headers">
+        <span class="header-index">#</span>
+        <span class="header-thumb"></span>
+        <span class="header-title">Title</span>
+        <span class="header-artist">Artist</span>
+        <span class="header-actions">Actions</span>
+        <span class="header-duration">Duration</span>
       </div>
       
-      <div class="results-list">
+      <div class="results-list glass-panel">
         <TrackCard
-          v-for="track in results"
+          v-for="(track, idx) in results"
           :key="track.videoId"
+          :index="idx + 1"
           :track="track"
           @play="handlePlay"
         />
@@ -164,6 +182,48 @@ const categories = {
       'punjabi bhangra songs'
     ],
     gradient: 'linear-gradient(135deg, #ffb74d 0%, #ffa726 100%)'
+  },
+  'kannada-songs': {
+    name: 'Kannada Songs',
+    description: 'Beautiful Kannada hits',
+    queries: [
+      'kannada songs 2024',
+      'latest kannada songs',
+      'kannada romantic melodies',
+      'kannada movie songs'
+    ],
+    gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+  },
+  'malayalam-songs': {
+    name: 'Malayalam Songs',
+    description: 'Soothing Malayalam tracks',
+    queries: [
+      'malayalam songs 2024',
+      'latest malayalam songs',
+      'malayalam romantic melodies',
+      'malayalam movie songs'
+    ],
+    gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
+  },
+  'bengali-songs': {
+    name: 'Bengali Songs',
+    description: 'Golden Bengali collection',
+    queries: [
+      'bengali songs hits',
+      'latest bengali romantic songs',
+      'bengali movie songs modern'
+    ],
+    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+  },
+  'bhojpuri-songs': {
+    name: 'Bhojpuri Songs',
+    description: 'Energetic Bhojpuri tadka',
+    queries: [
+      'bhojpuri hit songs 2024',
+      'latest bhojpuri video songs audio',
+      'bhojpuri dance songs'
+    ],
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)'
   },
   'bollywood-hits': {
     name: 'Bollywood Hits',
@@ -323,7 +383,26 @@ onMounted(async () => {
     
     await loadSongs()
   } else {
-    error.value = 'Category not found'
+    // Dynamic category fallback using query params
+    const name = categoryId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    const qName = route.query.name || name
+    const qDesc = route.query.desc || 'Curated music collection'
+    const qGrad = route.query.grad || 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)'
+    const qQuery = route.query.q || (categoryId.replace(/-/g, ' ') + ' songs')
+    
+    categoryName.value = qName
+    categoryDescription.value = qDesc
+    categoryGradient.value = qGrad
+    categoryQuery.value = qQuery
+    
+    categories[categoryId] = {
+      name: qName,
+      description: qDesc,
+      queries: [qQuery],
+      gradient: qGrad
+    }
+    
+    await loadSongs()
   }
 })
 
@@ -403,28 +482,51 @@ function goBack() {
 
 <style scoped>
 .category-view {
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.category-header-glow {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  width: 100%;
+  height: 350px;
+  opacity: 0.15;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 50%;
 }
 
 .category-header {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
   margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-md);
 }
 
 .back-btn {
   background: var(--color-surface-elevated);
   border: 1px solid var(--color-border);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
@@ -437,79 +539,204 @@ function goBack() {
 .back-btn:hover {
   background: var(--color-surface-hover);
   transform: scale(1.05);
+  border-color: var(--glass-border-hover);
 }
 
 .category-info {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  flex: 1;
 }
 
 .category-badge {
-  width: 80px;
-  height: 80px;
-  border-radius: var(--radius-md);
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.category-badge:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .category-icon {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   color: white;
+  transition: all var(--transition-normal);
+}
+
+.category-badge:hover .category-icon {
+  opacity: 0.1;
+  transform: scale(0.8);
+}
+
+.badge-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.badge-play-overlay svg {
+  width: 36px;
+  height: 36px;
+  color: white;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.category-badge:hover .badge-play-overlay {
+  opacity: 1;
+}
+
+.category-meta-block {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+.playlist-pill {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: inline-block;
 }
 
 .category-title {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 900;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin: 0 0 6px 0;
+  letter-spacing: -1px;
+  line-height: 1.1;
 }
 
 .category-description {
-  font-size: 16px;
-  color: var(--color-text-muted);
-}
-
-.results-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.play-all-btn {
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: var(--radius-full);
   font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.playlist-stats {
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
-.play-all-btn svg {
-  width: 16px;
-  height: 16px;
+.stats-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
 }
 
-.play-all-btn:hover {
-  background: var(--color-primary-dark);
-  transform: scale(1.05);
+.stats-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.stats-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.header-play-btn {
+  background: var(--color-primary);
+  border: none;
+  color: white;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 10px rgba(236, 72, 153, 0.25);
+}
+
+.header-play-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(236, 72, 153, 0.35);
+  background: var(--color-primary-light);
+}
+
+.btn-play-svg {
+  width: 12px;
+  height: 12px;
+}
+
+.list-headers {
+  display: grid;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 24px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  grid-template-columns: 32px 56px 2fr 1.2fr 140px 60px;
+}
+
+.header-index {
+  text-align: center;
+}
+
+.header-thumb {
+  display: block;
+}
+
+.header-title {
+  text-align: left;
+}
+
+.header-artist {
+  text-align: left;
+}
+
+.header-actions {
+  text-align: center;
+}
+
+.header-duration {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .list-headers {
+    grid-template-columns: 32px 56px 1fr 140px 60px;
+    padding: 8px 16px;
+  }
+  .header-artist {
+    display: none;
+  }
 }
 
 .results-list {
@@ -551,6 +778,7 @@ function goBack() {
 .load-more-btn:hover:not(:disabled) {
   background: var(--color-surface-hover);
   transform: translateY(-2px);
+  border-color: var(--glass-border-hover);
 }
 
 .load-more-btn:disabled {
@@ -607,31 +835,43 @@ function goBack() {
 
 @media (max-width: 768px) {
   .category-header {
-    gap: 16px;
+    gap: 20px;
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
   }
   
+  .back-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .category-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
   .category-badge {
-    width: 60px;
-    height: 60px;
+    width: 90px;
+    height: 90px;
   }
   
   .category-icon {
-    width: 30px;
-    height: 30px;
+    width: 38px;
+    height: 38px;
   }
   
   .category-title {
-    font-size: 24px;
+    font-size: 26px;
   }
   
   .category-description {
-    font-size: 14px;
+    font-size: 13px;
   }
   
-  .results-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .list-headers {
+    display: none; /* Hide headers on mobile */
   }
 }
 </style>

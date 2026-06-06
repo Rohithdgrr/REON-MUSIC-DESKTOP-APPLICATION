@@ -47,7 +47,7 @@
     <div class="playlists">
       <div class="pl-header">
         <span>Playlists</span>
-        <button class="add-btn" @click="createNewPlaylist" title="Create playlist">
+        <button class="add-btn" @click="openCreateModal" title="Create playlist">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
@@ -59,7 +59,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             <span>{{ p.name }}</span>
           </router-link>
-          <button class="pl-delete" @click="deletePlaylist(p)" title="Delete playlist">
+          <button class="pl-delete" @click="confirmDeletePlaylist(p)" title="Delete playlist">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/></svg>
           </button>
         </div>
@@ -72,20 +72,36 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </router-link>
     </div>
+
+    <!-- Create Playlist Modal -->
+    <CreatePlaylistModal v-model:show="showCreateModal" @created="onPlaylistCreated" />
+
+    <!-- Delete Playlist Modal -->
+    <ModalDialog v-model:show="showDeleteModal" title="Delete Playlist" size="sm">
+      <p>Are you sure you want to delete <strong>{{ playlistToDelete?.name }}</strong>? This action cannot be undone.</p>
+      <template #footer>
+        <button class="btn btn-secondary" @click="showDeleteModal = false">Cancel</button>
+        <button class="btn btn-danger" @click="handleDeletePlaylist">Delete</button>
+      </template>
+    </ModalDialog>
   </aside>
 </template>
 
 <script setup>
 import { onMounted, computed, ref, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useLibraryStore } from '../stores/library.js'
 import { useFavoritesStore } from '../stores/favorites.js'
 import { useDownloadsStore } from '../stores/downloads.js'
 import ThemeToggle from './ThemeToggle.vue'
+import ModalDialog from './ModalDialog.vue'
+import CreatePlaylistModal from './CreatePlaylistModal.vue'
 import { storeToRefs } from 'pinia'
 
 const props = defineProps({ isOpen: Boolean })
 const emit = defineEmits(['toggle', 'resize'])
 
+const router = useRouter()
 const library = useLibraryStore()
 const favorites = useFavoritesStore()
 const downloads = useDownloadsStore()
@@ -99,6 +115,11 @@ const MAX_WIDTH = 400
 let isResizing = false
 let startX = 0
 let startWidth = 0
+
+// Modals state
+const showCreateModal = ref(false)
+const showDeleteModal = ref(false)
+const playlistToDelete = ref(null)
 
 function startResize(e) {
   isResizing = true
@@ -133,14 +154,24 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopResize)
 })
 
-async function createNewPlaylist() {
-  const name = prompt('Enter playlist name:')
-  if (name?.trim()) await library.createPlaylist(name.trim())
+function openCreateModal() {
+  showCreateModal.value = true
 }
 
-async function deletePlaylist(p) {
-  if (confirm(`Delete "${p.name}"?`)) {
-    await library.deletePlaylist(p.id)
+function onPlaylistCreated(playlist) {
+  router.push(`/playlist/${playlist.id}`)
+}
+
+function confirmDeletePlaylist(p) {
+  playlistToDelete.value = p
+  showDeleteModal.value = true
+}
+
+async function handleDeletePlaylist() {
+  if (playlistToDelete.value) {
+    await library.deletePlaylist(playlistToDelete.value.id)
+    showDeleteModal.value = false
+    playlistToDelete.value = null
   }
 }
 </script>

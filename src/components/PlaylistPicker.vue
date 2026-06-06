@@ -39,6 +39,7 @@
     </transition>
 
     <div v-if="showPicker" class="picker-overlay" @click="showPicker = false"></div>
+    <CreatePlaylistModal v-model:show="showCreateModal" @created="onPlaylistCreated" />
   </div>
 </template>
 
@@ -46,6 +47,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useLibraryStore } from '../stores/library.js'
 import { useNotifications } from '../composables/useNotifications.js'
+import CreatePlaylistModal from './CreatePlaylistModal.vue'
 
 const props = defineProps({
   song: { type: Object, required: true }
@@ -56,6 +58,7 @@ const { showNotification } = useNotifications()
 const showPicker = ref(false)
 const loading = ref(false)
 const playlists = ref([])
+const showCreateModal = ref(false)
 
 onMounted(() => {
   loadPlaylists()
@@ -91,15 +94,13 @@ async function addTo(playlist) {
 }
 
 async function createAndAdd() {
-  const name = prompt('Enter playlist name:')
-  if (name?.trim()) {
-    const result = await library.createPlaylist(name.trim())
-    if (result.success) {
-      playlists.value = library.playlists
-      await addTo(result.data)
-    }
-  }
   showPicker.value = false
+  showCreateModal.value = true
+}
+
+async function onPlaylistCreated(playlist) {
+  playlists.value = library.playlists
+  await addTo(playlist)
 }
 </script>
 
@@ -110,10 +111,10 @@ async function createAndAdd() {
 }
 
 .picker-btn {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -123,7 +124,12 @@ async function createAndAdd() {
   transition: all var(--transition-fast);
 }
 .picker-btn svg { width: 18px; height: 18px; }
-.picker-btn:hover { background: var(--color-surface-hover); color: var(--color-text); }
+.picker-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
 
 .picker-overlay {
   position: fixed; inset: 0; z-index: 999;
@@ -134,7 +140,7 @@ async function createAndAdd() {
   bottom: calc(100% + 8px);
   right: 0;
   width: 220px;
-  background: var(--color-surface-elevated);
+  background: rgba(17, 24, 39, 0.92);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
@@ -211,7 +217,7 @@ async function createAndAdd() {
   transition: background var(--transition-fast);
 }
 .picker-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--color-primary); }
-.picker-item:hover { background: var(--color-surface-hover); }
+.picker-item:hover { background: rgba(255, 255, 255, 0.06); }
 
 .picker-divider {
   height: 1px;

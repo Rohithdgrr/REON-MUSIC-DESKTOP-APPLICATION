@@ -91,7 +91,7 @@ export function registerSqliteIPC() {
     }
   })
 
-  ipcMain.handle('sqlite:createPlaylist', async (_event, name) => {
+  ipcMain.handle('sqlite:createPlaylist', async (_event, name, description = '', color = 'indigo') => {
     try {
       const db = getDb()
       await db.read()
@@ -102,7 +102,13 @@ export function registerSqliteIPC() {
       }
       
       const id = getNextId(db.data.playlists)
-      const playlist = { id, name, description: '', created_at: new Date().toISOString() }
+      const playlist = {
+        id,
+        name,
+        description: description || '',
+        color: color || 'indigo',
+        created_at: new Date().toISOString()
+      }
       db.data.playlists.push(playlist)
       await db.write()
       return { success: true, data: playlist }

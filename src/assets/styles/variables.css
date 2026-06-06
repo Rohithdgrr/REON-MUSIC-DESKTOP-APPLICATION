@@ -13,6 +13,10 @@
   --color-secondary: #3b82f6;     /* Blue */
   --color-accent: #6366f1;        /* Indigo */
   
+  /* Dynamic Glowing Orbs */
+  --color-orb-1: rgba(236, 72, 153, 0.08);
+  --color-orb-2: rgba(99, 102, 241, 0.06);
+  
   /* Borders - Minimalist */
   --color-border: rgba(148, 163, 184, 0.15);
   --color-border-light: rgba(148, 163, 184, 0.25);
@@ -124,6 +128,10 @@
   --color-primary-light: #818cf8;
   --color-secondary: #0f172a;     /* Dark Slate Primary Action */
   --color-accent: #3b82f6;        /* Sky Blue secondary */
+  
+  /* Dynamic Glowing Orbs */
+  --color-orb-1: rgba(99, 102, 241, 0.05);
+  --color-orb-2: rgba(59, 130, 246, 0.03);
   
   --color-border: rgba(226, 232, 240, 0.8);
   --color-border-light: rgba(241, 245, 249, 0.9);

@@ -161,7 +161,7 @@
             class="playlist-card"
             @click="goToPlaylist(playlist.id)"
           >
-            <div class="playlist-cover">
+            <div class="playlist-cover" :style="{ background: getPlaylistGradient(playlist.color) }">
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/>
               </svg>
@@ -332,6 +332,7 @@
         </div>
       </div>
     </div>
+    <CreatePlaylistModal v-model:show="showCreatePlaylistModal" @created="onPlaylistCreated" />
   </div>
 </template>
 
@@ -343,6 +344,7 @@ import { usePlayerStore } from '../stores/player.js'
 import { useStatsStore } from '../stores/stats.js'
 import { useSmartPlaylistsStore } from '../stores/smartPlaylists.js'
 import TrackCard from '../components/TrackCard.vue'
+import CreatePlaylistModal from '../components/CreatePlaylistModal.vue'
 
 const router = useRouter()
 const library = useLibraryStore()
@@ -353,6 +355,7 @@ const smartPlaylistsStore = useSmartPlaylistsStore()
 const activeTab = ref('songs')
 const topSongs = ref([])
 const topArtists = ref([])
+const showCreatePlaylistModal = ref(false)
 
 const tabs = [
   { id: 'songs', label: 'All Songs', icon: 'svg' },
@@ -411,10 +414,26 @@ function searchArtist(artistName) {
 }
 
 async function createPlaylist() {
-  const name = prompt('Enter playlist name:')
-  if (name?.trim()) {
-    await library.createPlaylist(name.trim())
-  }
+  showCreatePlaylistModal.value = true
+}
+
+function onPlaylistCreated(playlist) {
+  router.push(`/playlist/${playlist.id}`)
+}
+
+const colorGradients = {
+  indigo: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  pink: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+  orange: 'linear-gradient(135deg, #f97316, #ef4444)',
+  amber: 'linear-gradient(135deg, #f59e0b, #f97316)',
+  emerald: 'linear-gradient(135deg, #10b981, #059669)',
+  cyan: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+  slate: 'linear-gradient(135deg, #475569, #1e293b)',
+  fuchsia: 'linear-gradient(135deg, #d946ef, #6366f1)'
+}
+
+function getPlaylistGradient(color) {
+  return colorGradients[color] || colorGradients.indigo
 }
 
 async function clearHistory() {
@@ -741,12 +760,16 @@ function getSmartIcon(rule) {
   width: 100%;
   aspect-ratio: 1;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   margin-bottom: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.playlist-card:hover .playlist-cover {
+  transform: scale(1.03);
 }
 
 .playlist-cover svg {

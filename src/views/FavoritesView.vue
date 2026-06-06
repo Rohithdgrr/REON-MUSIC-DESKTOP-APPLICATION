@@ -19,6 +19,7 @@
           <h1 class="page-title">Favorites</h1>
           <p class="subtitle">
             <span class="highlight">{{ favoriteCount }}</span> {{ favoriteCount === 1 ? 'song' : 'songs' }} saved
+            <span v-if="totalDuration" class="duration-stat"> • {{ totalDuration }}</span>
           </p>
         </div>
       </div>
@@ -45,7 +46,7 @@
 
     <!-- Filter & Search Strip -->
     <div class="filter-strip" v-if="favoriteCount > 0">
-      <div class="search-box">
+      <div class="search-box" :class="{ focused: searchQuery.length > 0 }">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/>
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -53,7 +54,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search in favorites..."
+          placeholder="Search favorites..."
           class="search-input"
         />
         <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
@@ -64,33 +65,27 @@
         </button>
       </div>
 
-      <div class="sort-controls">
-        <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="6" x2="16" y2="6"/>
-          <line x1="4" y1="12" x2="12" y2="12"/>
-          <line x1="4" y1="18" x2="8" y2="18"/>
-          <polyline points="15 15 18 18 21 15"/>
-        </svg>
-        <div class="sort-select-wrapper">
-          <select v-model="sortBy" class="sort-select">
-            <option value="addedAt">Date Added</option>
-            <option value="title">Title</option>
-            <option value="artist">Artist</option>
-            <option value="duration">Duration</option>
-          </select>
-          <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+      <div class="filter-actions">
+        <div class="sort-controls">
+          <span class="sort-label">Sort by</span>
+          <div class="sort-select-wrapper">
+            <select v-model="sortBy" class="sort-select">
+              <option value="addedAt">Date Added</option>
+              <option value="title">Title</option>
+              <option value="artist">Artist</option>
+              <option value="duration">Duration</option>
+            </select>
+            <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
         </div>
         
-        <button @click="toggleSortOrder" class="direction-btn" :title="sortOrder === 'desc' ? 'Descending' : 'Ascending'">
-          <svg v-if="sortOrder === 'desc'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <polyline points="19 12 12 19 5 12"/>
-          </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <button @click="toggleSortOrder" class="direction-btn" :class="{ active: sortOrder === 'asc' }" :title="sortOrder === 'desc' ? 'Descending' : 'Ascending'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="19" x2="12" y2="5"/>
-            <polyline points="5 12 12 5 19 12"/>
+            <polyline v-if="sortOrder === 'desc'" points="5 12 12 5 19 12"/>
+            <polyline v-else points="19 12 12 19 5 12"/>
           </svg>
         </button>
       </div>
@@ -143,27 +138,21 @@
     <div v-else class="favorites-list-container">
       <div class="list-headers">
         <span class="header-col-rank">#</span>
+        <span class="header-col-thumb"></span>
         <span class="header-col-title">Title</span>
-        <span class="header-col-actions"></span>
-        <span class="header-col-dur">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </span>
+        <span class="header-col-artist">Artist</span>
+        <span class="header-col-actions">Actions</span>
+        <span class="header-col-dur">Duration</span>
       </div>
-      <div class="favorites-list">
+      <div class="favorites-list glass-panel">
         <TrackCard
-          v-for="(song, index) in filteredSongs"
+          v-for="(song, idx) in filteredSongs"
           :key="song.videoId"
+          :index="idx + 1"
           :track="song"
           @play="playSong"
           class="favorite-track-card"
-        >
-          <template #rank>
-            <span class="track-row-index">{{ index + 1 }}</span>
-          </template>
-        </TrackCard>
+        />
       </div>
     </div>
   </div>
@@ -193,6 +182,15 @@ const headerBackdropUrl = computed(() => {
     return favoriteSongs.value[0].thumbnail
   }
   return ''
+})
+
+const totalDuration = computed(() => {
+  if (favoriteSongs.value.length === 0) return ''
+  const total = favoriteSongs.value.reduce((sum, song) => sum + (song.duration || 0), 0)
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m`
+  return `${m} min`
 })
 
 const filteredSongs = computed(() => {
@@ -399,6 +397,11 @@ function goToSearch() {
   font-family: var(--font-mono);
 }
 
+.duration-stat {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
 .header-actions {
   display: flex;
   gap: 12px;
@@ -459,7 +462,7 @@ function goToSearch() {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   border: var(--glass-border);
@@ -469,27 +472,28 @@ function goToSearch() {
 
 .search-box {
   flex: 1;
-  max-width: 320px;
+  max-width: 340px;
   display: flex;
   align-items: center;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 12px;
+  border-radius: var(--radius-full);
+  padding: 0 16px;
   gap: 10px;
-  height: 40px;
+  height: 42px;
   transition: all var(--transition-fast);
 }
 
+.search-box.focused,
 .search-box:focus-within {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-glow);
-  max-width: 360px;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  max-width: 400px;
 }
 
 .search-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
@@ -500,7 +504,7 @@ function goToSearch() {
   border: none;
   outline: none;
   color: var(--color-text);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 500;
   padding: 0;
   width: 100%;
@@ -519,8 +523,30 @@ function goToSearch() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 50%;
   transition: all var(--transition-fast);
+}
+
+.clear-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.clear-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sort-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .clear-btn:hover {
@@ -817,12 +843,13 @@ function goToSearch() {
 }
 
 .list-headers {
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 16px;
   padding: 8px 24px;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 12px;
+  grid-template-columns: 32px 56px 2fr 1.2fr 140px 60px;
 }
 
 .list-headers span {
@@ -834,28 +861,37 @@ function goToSearch() {
 }
 
 .header-col-rank {
-  width: 24px;
   text-align: center;
 }
 
+.header-col-thumb {
+  display: block;
+}
+
 .header-col-title {
-  flex: 1;
+  text-align: left;
+}
+
+.header-col-artist {
+  text-align: left;
 }
 
 .header-col-actions {
-  width: 140px;
+  text-align: center;
 }
 
 .header-col-dur {
-  width: 40px;
   text-align: right;
-  display: flex;
-  justify-content: flex-end;
 }
 
-.header-col-dur svg {
-  width: 14px;
-  height: 14px;
+@media (max-width: 900px) {
+  .list-headers {
+    grid-template-columns: 32px 56px 1fr 140px 60px;
+    padding: 8px 16px;
+  }
+  .header-col-artist {
+    display: none;
+  }
 }
 
 .favorites-list {

@@ -12,8 +12,15 @@
           <line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
         Queue
+        <span v-if="player.isShuffled" class="shuffle-badge" title="Shuffle is on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y3="3"/>
+            <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+          </svg>
+          Shuffle
+        </span>
       </h3>
-      <button class="close-btn" @click="$emit('close')">
+      <button class="close-btn" @click="$emit('close')" aria-label="Close queue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -21,13 +28,15 @@
       </button>
     </div>
 
-    <div class="queue-stats">
-      <span>{{ queue.length }} songs</span>
+    <div v-if="queueCount > 0" class="queue-stats">
+      <span><strong>{{ queueCount }}</strong> songs</span>
       <span>•</span>
-      <span>{{ totalDuration }}</span>
+      <span>{{ totalDurationLong }} total</span>
+      <span>•</span>
+      <span>{{ currentTrackPosition }} of {{ queueCount }} playing</span>
     </div>
 
-    <div v-if="queue.length === 0" class="empty-queue">
+    <div v-if="queueCount === 0" class="empty-queue">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="8" y1="6" x2="21" y2="6"/>
         <line x1="8" y1="12" x2="21" y2="12"/>
@@ -35,10 +44,16 @@
       </svg>
       <p>No songs in queue</p>
       <p class="empty-subtitle">Add songs to start playing</p>
+      <button class="browse-btn" @click="$emit('close'); $router.push('/search')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Browse Music
+      </button>
     </div>
 
     <div v-else class="queue-list">
-      <div class="now-playing-section" v-if="currentTrack">
+      <div class="now-playing-section" v-if="track.videoId">
         <div class="section-label">
           <svg class="now-playing-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
@@ -47,7 +62,7 @@
         </div>
         <div class="queue-item current">
           <div class="item-thumbnail">
-            <img v-if="currentTrack.thumbnail && !brokenImages.has(currentTrack.thumbnail)" :src="currentTrack.thumbnail" @error="handleImageError(currentTrack.thumbnail)" alt="">
+            <img v-if="track.thumbnail && !brokenImages.has(track.thumbnail)" :src="track.thumbnail" @error="handleImageError(track.thumbnail)" alt="">
             <div v-else class="thumbnail-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
@@ -60,31 +75,46 @@
             </div>
           </div>
           <div class="item-info">
-            <div class="item-title">{{ currentTrack.title }}</div>
-            <div class="item-artist">{{ currentTrack.artist }}</div>
+            <div class="item-title">{{ track.title }}</div>
+            <div class="item-artist">{{ track.artist }}</div>
+            <div class="mini-progress" v-if="player.progressPercent > 0">
+              <div class="mini-progress-fill" :style="{ width: player.progressPercent + '%' }"></div>
+            </div>
           </div>
-          <div class="item-duration">{{ formatDuration(currentTrack.duration) }}</div>
+          <div class="item-duration">{{ formatDuration(track.duration) }}</div>
         </div>
       </div>
 
       <div class="next-up-section" v-if="upcomingSongs.length > 0">
-        <div class="section-label">Next Up</div>
+        <div class="section-label">Next Up <span class="count-pill">{{ upcomingSongs.length }}</span></div>
         <draggable
           v-model="upcomingSongs"
           @end="onReorder"
           item-key="videoId"
           class="draggable-list"
           handle=".drag-handle"
+          role="listbox"
+          :aria-label="`Up next: ${upcomingSongs.length} songs`"
         >
           <template #item="{ element, index }">
-            <div class="queue-item" :class="{ playing: isPlaying(index) }">
-              <div class="drag-handle">
+            <div
+              class="queue-item"
+              :class="{ playing: isPlaying(index) }"
+              role="option"
+              :aria-selected="isPlaying(index)"
+              :tabindex="0"
+              @keydown="onItemKeydown($event, element, index)"
+              @focus="focusedIndex = index"
+              @blur="focusedIndex = -1"
+              :data-focused="focusedIndex === index"
+            >
+              <div class="drag-handle" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/>
                   <circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
                 </svg>
               </div>
-              <div class="item-thumbnail" @click="playFromQueue(index)">
+              <div class="item-thumbnail" @click="playQueueItem(element)" :aria-label="`Play ${element.title}`">
                 <img v-if="element.thumbnail && !brokenImages.has(element.thumbnail)" :src="element.thumbnail" @error="handleImageError(element.thumbnail)" alt="">
                 <div v-else class="thumbnail-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -97,12 +127,24 @@
                   </svg>
                 </div>
               </div>
-              <div class="item-info">
+              <div class="item-info" @click="playQueueItem(element)">
                 <div class="item-title">{{ element.title }}</div>
                 <div class="item-artist">{{ element.artist }}</div>
+                <div v-if="player.getItemMeta(element.videoId)?.sourceName" class="source-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  </svg>
+                  {{ player.getItemMeta(element.videoId).sourceName }}
+                </div>
               </div>
               <div class="item-actions">
-                <button class="action-btn" @click="removeFromQueue(index)" title="Remove">
+                <button class="action-btn move-top" @click="moveToTop(index)" :disabled="index === 0" title="Move to top" aria-label="Move to top of queue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+                  </svg>
+                </button>
+                <button class="action-btn" @click="removeFromQueue(index)" title="Remove" aria-label="Remove from queue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
@@ -114,17 +156,50 @@
           </template>
         </draggable>
       </div>
+
+      <div class="history-section" v-if="library.history && library.history.length > 0">
+        <button class="section-toggle" @click="showHistory = !showHistory" :aria-expanded="showHistory">
+          <svg class="history-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: showHistory ? 'rotate(90deg)' : 'rotate(0deg)' }">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          Recently Played
+          <span class="count-pill">{{ library.history.length }}</span>
+        </button>
+        <transition name="history-fade">
+          <div v-if="showHistory" class="history-list">
+            <div
+              v-for="(item, i) in library.history.slice(0, 8)"
+              :key="`${item.video_id || item.videoId}-${i}`"
+              class="history-item"
+            >
+              <div class="item-thumbnail small">
+                <img v-if="(item.thumbnail_url || item.thumbnail) && !brokenImages.has(item.thumbnail_url || item.thumbnail)" :src="item.thumbnail_url || item.thumbnail" @error="handleImageError(item.thumbnail_url || item.thumbnail)" alt="">
+                <div v-else class="thumbnail-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </div>
+              </div>
+              <div class="item-info">
+                <div class="item-title">{{ item.title || 'Unknown' }}</div>
+                <div class="item-artist">{{ item.artist || 'Unknown' }}</div>
+              </div>
+              <div class="item-actions">
+                <button class="action-btn primary" @click="playHistoryNow(item)" title="Play now" aria-label="Play this track next">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button class="action-btn" @click="addHistoryToQueue(item)" title="Add to queue" aria-label="Add to queue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </div>
     </div>
 
-    <div class="queue-actions" v-if="queue.length > 0">
-      <div class="save-playlist-section" v-if="showSaveDialog">
-        <input v-model="playlistName" ref="saveInput" placeholder="Enter playlist name..." @keyup.enter="confirmSave" @keyup.esc="showSaveDialog = false" class="save-input" />
-        <div class="save-actions">
-          <button class="action-button primary small" @click="confirmSave" :disabled="!playlistName.trim()">Save</button>
-          <button class="action-button small" @click="showSaveDialog = false">Cancel</button>
-        </div>
-      </div>
-      <button v-else class="action-button" @click="startSave">
+    <div class="queue-actions" v-if="queueCount > 0">
+      <button class="action-button" @click="showSaveModal = true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
           <polyline points="17 21 17 13 7 13 7 21"/>
@@ -140,16 +215,26 @@
         Clear Queue
       </button>
     </div>
+
+    <CreatePlaylistModal
+      v-model:show="showSaveModal"
+      title="Save Queue as Playlist"
+      action-label="Save"
+      placeholder="Queue backup"
+      @created="onSaveCreated"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, ref, nextTick, onUnmounted } from 'vue'
+import { computed, ref, onUnmounted, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../stores/player.js'
 import { useLibraryStore } from '../stores/library.js'
-import { useNotifications } from '../composables/useNotifications.js'
-import { storeToRefs } from 'pinia'
 import draggable from 'vuedraggable'
+import CreatePlaylistModal from './CreatePlaylistModal.vue'
+import { useQueue } from '../composables/useQueue.js'
+import { formatDuration } from '../utils/queueFormat.js'
 
 const props = defineProps({
   isOpen: Boolean
@@ -159,48 +244,80 @@ const emit = defineEmits(['close', 'resize'])
 
 const player = usePlayerStore()
 const library = useLibraryStore()
-const { queue, currentIndex, currentTrack } = storeToRefs(player)
+const { queue, currentIndex, currentTrack, isShuffled } = storeToRefs(player)
 
-const brokenImages = ref(new Set())
-function handleImageError(url) {
-  if (url) brokenImages.value.add(url)
+const {
+  brokenImages,
+  handleImageError,
+  track,
+  queueCount,
+  currentTrackPosition,
+  upcomingSongs,
+  totalDurationLong,
+  playQueueItem,
+  removeFromQueue,
+  moveToTop,
+  clearQueue,
+  addHistoryToQueue,
+  playHistoryNow
+} = useQueue()
+
+const showHistory = ref(false)
+const showSaveModal = ref(false)
+const focusedIndex = ref(-1)
+
+function isPlaying(index) {
+  return index === currentIndex.value
 }
 
-const { showNotification } = useNotifications()
-const showSaveDialog = ref(false)
-const playlistName = ref('')
-const saveInput = ref(null)
-
-function startSave() {
-  playlistName.value = ''
-  showSaveDialog.value = true
-  nextTick(() => saveInput.value?.focus())
+function onReorder() {
+  // Reordering is handled by the computed setter
 }
 
-async function confirmSave() {
-  const name = playlistName.value.trim()
-  if (!name) return
-  showSaveDialog.value = false
-  const result = await library.createPlaylist(name)
-  if (result.success) {
-    for (let i = 0; i < queue.value.length; i++) {
-      const track = queue.value[i]
-      await library.addSong({
-        videoId: track.videoId,
-        title: track.title,
-        artist: track.artist,
-        thumbnail: track.thumbnail || '',
-        duration: track.duration || 0
-      })
-      const songId = library.songs.find(s => s.video_id === track.videoId)?.id
-      if (songId) {
-        await library.addSongToPlaylist(result.data.id, songId, i)
-      }
+function onItemKeydown(e, item, index) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    playQueueItem(item)
+  } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault()
+    removeFromQueue(index)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    if (index > 0) moveToTop(index)
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    if (index < upcomingSongs.value.length - 1) {
+      const list = upcomingSongs.value
+      const temp = list[index]
+      const newList = [...list]
+      newList[index] = newList[index + 1]
+      newList[index + 1] = temp
+      upcomingSongs.value = newList
     }
-    showNotification({ title: 'Playlist Saved', message: `"${name}" with ${queue.value.length} songs`, type: 'success' })
   }
 }
 
+async function onSaveCreated(playlist) {
+  // The CreatePlaylistModal already calls createPlaylist but does NOT
+  // copy the queue contents. We do the bulk copy here.
+  if (!playlist?.id) return
+  for (let i = 0; i < upcomingSongs.value.length; i++) {
+    const t = upcomingSongs.value[i]
+    await library.addSong({
+      videoId: t.videoId,
+      title: t.title,
+      artist: t.artist,
+      thumbnail: t.thumbnail || '',
+      duration: t.duration || 0
+    })
+    const songId = library.songs.find((s) => s.video_id === t.videoId)?.id
+    if (songId) {
+      await library.addSongToPlaylist(playlist.id, songId, i)
+    }
+  }
+}
+
+// Resize logic
 const panelWidth = ref(380)
 const MIN_WIDTH = 300
 const MAX_WIDTH = 600
@@ -235,70 +352,17 @@ function stopResize() {
   document.body.style.userSelect = ''
 }
 
+onMounted(() => {
+  // Pre-load history if not loaded
+  if (!library.history || library.history.length === 0) {
+    library.loadHistory().catch(() => {})
+  }
+})
+
 onUnmounted(() => {
   document.removeEventListener('mousemove', onResize)
   document.removeEventListener('mouseup', stopResize)
 })
-
-const upcomingSongs = computed({
-  get: () => queue.value.slice(currentIndex.value + 1),
-  set: (value) => {
-    // Update queue with reordered songs
-    const newQueue = [
-      ...queue.value.slice(0, currentIndex.value + 1),
-      ...value
-    ]
-    player.setQueue(newQueue, currentIndex.value)
-  }
-})
-
-const totalDuration = computed(() => {
-  const total = queue.value.reduce((sum, track) => sum + (track.duration || 0), 0)
-  return formatDuration(total)
-})
-
-function formatDuration(seconds) {
-  if (!seconds) return '0:00'
-  const hrs = Math.floor(seconds / 3600)
-  const mins = Math.floor((seconds % 3600) / 60)
-  const secs = Math.floor(seconds % 60)
-  
-  if (hrs > 0) {
-    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
-
-function isPlaying(index) {
-  return index === currentIndex.value
-}
-
-function playFromQueue(index) {
-  const actualIndex = currentIndex.value + 1 + index
-  const track = queue.value[actualIndex]
-  if (track) {
-    player.setQueue(queue.value, actualIndex)
-    player.playTrack(track)
-  }
-}
-
-function removeFromQueue(index) {
-  const actualIndex = currentIndex.value + 1 + index
-  const newQueue = queue.value.filter((_, i) => i !== actualIndex)
-  const newIndex = actualIndex > currentIndex.value ? currentIndex.value : currentIndex.value - 1
-  player.setQueue(newQueue, newIndex)
-}
-
-function onReorder() {
-  // Reordering is handled by the computed setter
-}
-
-function clearQueue() {
-  if (confirm('Clear entire queue?')) {
-    player.clearQueue()
-  }
-}
-
 </script>
 
 <style scoped>
@@ -344,8 +408,9 @@ function clearQueue() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .queue-title {
@@ -359,10 +424,30 @@ function clearQueue() {
   letter-spacing: -0.02em;
 }
 
-.queue-title svg {
+.queue-title svg:first-child {
   width: 22px;
   height: 22px;
   color: var(--color-primary);
+}
+
+.shuffle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-primary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shuffle-badge svg {
+  width: 12px;
+  height: 12px;
 }
 
 .close-btn {
@@ -376,27 +461,35 @@ function clearQueue() {
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+  color: var(--color-text-muted);
 }
 
 .close-btn svg {
   width: 20px;
   height: 20px;
-  color: var(--color-text-muted);
 }
 
 .close-btn:hover {
   background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
 .queue-stats {
   padding: 12px 24px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: var(--font-medium);
   color: var(--color-text-muted);
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--color-border);
   letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.queue-stats strong {
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .queue-list {
@@ -416,6 +509,22 @@ function clearQueue() {
   color: var(--color-text-muted);
   margin-bottom: 10px;
   padding: 0 4px;
+}
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--color-primary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-left: auto;
 }
 
 .now-playing-icon {
@@ -444,6 +553,14 @@ function clearQueue() {
   cursor: pointer;
   border: 1px solid transparent;
   min-height: 72px;
+  border-left: 3px solid transparent;
+  position: relative;
+  outline: none;
+}
+
+.queue-item[data-focused="true"] {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
 }
 
 .queue-item > .item-thumbnail {
@@ -479,6 +596,7 @@ function clearQueue() {
 .queue-item.current {
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(236, 72, 153, 0.04));
   border: 1px solid rgba(236, 72, 153, 0.25);
+  border-left: 3px solid var(--color-primary);
   box-shadow: 0 4px 16px rgba(236, 72, 153, 0.15), inset 0 0 0 1px rgba(236, 72, 153, 0.1);
 }
 
@@ -508,6 +626,12 @@ function clearQueue() {
   flex-shrink: 0;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.item-thumbnail.small {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
 }
 
 .item-thumbnail img {
@@ -613,14 +737,56 @@ function clearQueue() {
   margin-top: 2px;
 }
 
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--color-primary);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-badge svg {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+}
+
+.mini-progress {
+  margin-top: 6px;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent, #ec4899));
+  border-radius: var(--radius-full);
+  transition: width 0.3s linear;
+}
+
 .item-actions {
   display: flex;
-  gap: var(--space-xs);
+  gap: 4px;
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
 
-.queue-item:hover .item-actions {
+.queue-item:hover .item-actions,
+.queue-item[data-focused="true"] .item-actions {
   opacity: 1;
 }
 
@@ -635,20 +801,41 @@ function clearQueue() {
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+  color: var(--color-text-muted);
 }
 
 .action-btn svg {
   width: 16px;
   height: 16px;
-  color: var(--color-text-muted);
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   background: var(--color-surface-active);
+  color: var(--color-text);
 }
 
-.action-btn:hover svg {
-  color: var(--color-text);
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.action-btn.primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: var(--color-primary-dark);
+  color: white;
+}
+
+.action-btn.primary svg {
+  width: 14px;
+  height: 14px;
+}
+
+.action-btn.move-top:hover:not(:disabled) {
+  color: var(--color-primary);
 }
 
 .item-duration {
@@ -671,63 +858,51 @@ function clearQueue() {
   text-align: center;
   color: var(--color-text-muted);
   height: 100%;
+  gap: 12px;
 }
 
 .empty-queue svg {
   width: 64px;
   height: 64px;
-  margin-bottom: var(--space-md);
+  margin-bottom: 4px;
   opacity: 0.3;
+}
+
+.empty-queue p {
+  margin: 0;
 }
 
 .empty-subtitle {
   font-size: 0.875rem;
-  margin-top: var(--space-xs);
+  opacity: 0.7;
 }
 
-.save-playlist-section {
-  display: flex;
-  flex-direction: column;
+.browse-btn {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  width: 100%;
-}
-
-.save-input {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--color-primary);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.save-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-button.primary {
   background: var(--color-primary);
   color: white;
-  border-color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.action-button.primary:hover:not(:disabled) {
+.browse-btn:hover {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.action-button.primary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.action-button.small {
-  flex: 0 1 auto;
-  padding: 6px 16px;
-  font-size: 0.78rem;
+.browse-btn svg {
+  width: 16px;
+  height: 16px;
+  opacity: 1;
 }
 
 .queue-actions {
@@ -735,6 +910,7 @@ function clearQueue() {
   border-top: 1px solid var(--color-border);
   display: flex;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .action-button {
@@ -777,17 +953,112 @@ function clearQueue() {
   gap: var(--space-xs);
 }
 
+/* History section */
+.history-section {
+  margin-top: 24px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  width: 100%;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+}
+
+.section-toggle:hover {
+  color: var(--color-text);
+}
+
+.history-icon {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--transition-fast);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  min-height: 52px;
+}
+
+.history-item:hover {
+  background: var(--color-surface-hover);
+}
+
+.history-item .item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item .item-title {
+  font-size: 0.82rem;
+}
+
+.history-item .item-artist {
+  font-size: 0.72rem;
+}
+
+.history-item .item-actions {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.history-item:hover .item-actions {
+  opacity: 1;
+}
+
+.history-fade-enter-active,
+.history-fade-leave-active {
+  transition: opacity 0.2s ease, max-height 0.3s ease;
+  overflow: hidden;
+}
+
+.history-fade-enter-from,
+.history-fade-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.history-fade-enter-to,
+.history-fade-leave-from {
+  opacity: 1;
+  max-height: 600px;
+}
+
 @media (max-width: 768px) {
   .queue-panel {
     width: 100% !important;
     transform: translateX(100%);
     border-radius: 0;
   }
-  
+
   .queue-panel.open {
     transform: translateX(0);
   }
-  
+
   .resize-handle {
     display: none;
   }

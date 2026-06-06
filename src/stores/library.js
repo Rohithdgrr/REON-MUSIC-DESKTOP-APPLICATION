@@ -78,12 +78,12 @@ export const useLibraryStore = defineStore('library', () => {
     }
   }
 
-  async function createPlaylist(name) {
+  async function createPlaylist(name, description = '', color = 'indigo') {
     try {
       await waitForElectronApi()
       const electron = getElectronApi()
       
-      const result = await electron.sqlite.createPlaylist(name)
+      const result = await electron.sqlite.createPlaylist(name, description, color)
       if (result.success) {
         await loadPlaylists()
       }

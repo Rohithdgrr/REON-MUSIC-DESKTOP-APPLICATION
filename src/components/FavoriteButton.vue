@@ -52,10 +52,10 @@ async function handleToggle() {
 
 <style scoped>
 .favorite-btn {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -72,14 +72,15 @@ async function handleToggle() {
 }
 
 .favorite-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .favorite-btn:hover {
-  background: var(--color-surface-hover);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   color: var(--color-text);
-  transform: scale(1.1);
+  transform: translateY(-1px);
 }
 
 .favorite-btn:active {
@@ -88,10 +89,12 @@ async function handleToggle() {
 
 .favorite-btn.active {
   color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .favorite-btn.active:hover {
-  color: var(--color-primary-dark);
+  color: var(--color-primary);
 }
 
 .favorite-btn.loading {
